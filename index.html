@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VacationGuru</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { navy: { 900: '#0f1b2d', 800: '#16263d', 700: '#1f3350', 600: '#2d4767' },
+            sand: { 50: '#faf6ee', 100: '#f3ead9', 200: '#e8d9bb', 400: '#c9a96a', 600: '#9a7b3f' } },
+  fontFamily: { serif: ['"Playfair Display"', 'serif'], sans: ['Inter', 'sans-serif'] } } } };
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  body { background: #faf6ee; color: #0f1b2d; font-family: Inter, sans-serif; }
+  .card { background: #fff; border: 1px solid #e8d9bb; border-radius: 14px; }
+  .btn { padding: .45rem .9rem; border-radius: 9px; font-size: .85rem; font-weight: 500; cursor: pointer; transition: .15s; }
+  .btn-primary { background: #0f1b2d; color: #f3ead9; }
+  .btn-primary:hover { background: #1f3350; }
+  .btn-sand { background: #f3ead9; color: #0f1b2d; border: 1px solid #e8d9bb; }
+  .btn-sand:hover { background: #e8d9bb; }
+  .btn-danger { background: #fff; color: #b3261e; border: 1px solid #e8b4b0; }
+  .inp { width: 100%; border: 1px solid #e8d9bb; border-radius: 8px; padding: .45rem .65rem; background: #fffdf8; font-size: .9rem; }
+  .inp:focus { outline: 2px solid #c9a96a; }
+  .lbl { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: #9a7b3f; margin: .6rem 0 .2rem; }
+  .badge { font-size: .68rem; padding: .12rem .5rem; border-radius: 999px; font-weight: 600; }
+  .star { cursor: pointer; font-size: 1.15rem; color: #d6c9ab; }
+  .star.on { color: #c9a96a; }
+  .ro .star { cursor: default; }
+</style>
+</head>
+<body>
+<header class="bg-navy-900 text-sand-100">
+  <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+    <a href="#" id="home" class="font-serif text-2xl font-bold tracking-wide">Vacation<span class="text-sand-400">Guru</span></a>
+    <div class="flex items-center gap-3"><span id="syncMsg" class="text-xs text-sand-200"></span><button id="syncBtn" class="btn btn-sand">Connect Drive</button></div>
+  </div>
+</header>
+<main id="app" class="max-w-4xl mx-auto px-4 py-6"></main>
+<div id="modal" class="hidden fixed inset-0 bg-navy-900/60 z-50 overflow-y-auto"><div class="min-h-full flex items-start justify-center p-4"><div id="modalBox" class="card w-full max-w-lg p-5 mt-8"></div></div></div>
+
+<script>
+/* ===== Config ===== */
+const CLIENT_ID = '669494100250-gvromuq72r7j0djmkd4vdbdq5damncj7.apps.googleusercontent.com';
+const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const FILE_NAME = 'vacationguru-data.json';
+const LS_KEY = 'vacationguru-data-v1';
+const TYPES = { accommodation: ['🛏️', 'Stay'], dining: ['🍽️', 'Dining'], activity: ['🎟️', 'Activity'], transport: ['✈️', 'Transport'], booking: ['📌', 'Booking'] };
+const STATUS = { planning: ['Planning', 'bg-sand-200 text-navy-800'], active: ['Active', 'bg-emerald-100 text-emerald-800'], locked: ['Locked', 'bg-navy-800 text-sand-100'] };
+
+/* ===== Helpers ===== */
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const todayStr = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+const dayDiff = (a, b) => Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5);
+const addDays = (s, n) => new Date(new Date(s + 'T00:00:00Z').getTime() + n * 864e5).toISOString().slice(0, 10);
+const fmtDate = s => s ? new Date(s + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '';
+const fmtShort = s => s ? new Date(s + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '';
+const money = n => (n || n === 0) && n !== '' ? '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '';
+const num = v => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
+const stars = (r, attr) => [1, 2, 3, 4, 5].map(i => `<span class="star ${i <= (r || 0) ? 'on' : ''}" ${attr ? `data-star="${i}"` : ''}>★</span>`).join('');
+
+/* ===== Seed: Perth & Margaret River (reconciled with Life Planner, 2026-10) ===== */
+function seedPerth() {
+  const s = (type, time, title, notes = '', extra = {}) => ({ id: uid(), type, time, title, notes, cost: null, link: '', rating: 0, actualNotes: '', ...extra });
+  const days = [
+    ['2026-11-02', [
+      s('transport', '07:20', 'SQ213 Singapore → Perth', 'Marvin + Cobae and Caroline booked on separate SIA tickets (see Bookings).'),
+      s('transport', '', 'Collect rental car — Ace, Redcliffe', 'Shuttle from T1.'),
+      s('accommodation', '', 'Adina Apartment Hotel Barrack Plaza — check in', 'Booked 2–5 Nov. ⚠ Quest is booked 4–5 Nov, which overlaps; confirm actual nights.')]],
+    ['2026-11-03', [s('activity', '', 'Perth Zoo', 'Booked and paid.')]],
+    ['2026-11-04', [
+      s('activity', '', 'Rottnest Island — ferry + bus', 'Day TBC. Ferry via Klook, bus booked and paid.'),
+      s('accommodation', '', 'Quest — check in', 'Booked 4–5 Nov via Trip.com, amount not recorded. ⚠ Check overlap with Adina.')]],
+    ['2026-11-05', [
+      s('transport', '', 'Drive to Margaret River'),
+      s('accommodation', '', 'Margaret River Resort — check in', 'Booked 5–7 Nov.')]],
+    ['2026-11-06', [
+      s('activity', '', 'Jewel Cave', 'Front carrier only — no prams.'),
+      s('dining', '', 'Leeuwin Estate area wineries', 'To check: which are toddler-friendly.')]],
+    ['2026-11-07', [
+      s('transport', '', 'Drive back to Perth'),
+      s('accommodation', '', 'Adina Barrack Plaza — check in', 'Booked 7–8 Nov.')]],
+    ['2026-11-08', [
+      s('transport', '09:45', 'Leave hotel', 'Must leave by 9:45am to return the car on time.'),
+      s('transport', '10:30', 'Return rental car — Ace, Redcliffe'),
+      s('transport', '13:50', 'SQ226 Perth → Singapore')]]
+  ].map(([date, stops]) => ({ date, stops }));
+  const b = (title, cost, notes = '') => ({ id: uid(), title, confirmation: '', cost, deadline: '', booked: true, notes });
+  return {
+    id: 'perth-2026', name: 'Perth & Margaret River', destination: 'Perth, Western Australia', start: '2026-11-02', end: '2026-11-08',
+    status: 'planning', tags: ['family', 'toddler', 'road trip', 'wine'], budgetTier: '$$', travellers: ['Marvin', 'Caroline', 'Cobae (toddler)', 'Guest adult'],
+    notes: 'Costs below are as recorded in the Life Planner (assumed SGD). All bookings settled outside the app.', lockedAt: null, days,
+    bookings: [
+      b('SIA flights — Marvin + Cobae', 1408), b('SIA flight — Caroline', 908.8),
+      b('Adina Barrack Plaza, 2–5 Nov (Trip.com)', 1371.41, 'Deduction 30 Oct'),
+      b('Quest, 4–5 Nov (Trip.com)', null, 'Amount not recorded'),
+      b('Margaret River Resort, 5–7 Nov (Trip.com)', 752.25, 'Paid 4 Jul'),
+      b('Adina Barrack Plaza, 7–8 Nov (Trip.com)', 499.37, 'Deduction 4 Oct'),
+      b('Car rental — Ace, Redcliffe (Klook)', 488.9, 'Paid 9 Aug'),
+      b('Perth Zoo', 144.02, 'Paid 28 Sep'), b('Rottnest bus', 131.56, 'Paid 28 Sep'),
+      b('Rottnest ferry (Klook)', null, 'Settled outside the app; amount to enter'),
+      b('Jewel Cave (Klook)', null, 'Settled outside the app; amount to enter')]
+  };
+}
+
+/* ===== State ===== */
+let D = load();
+let view = { page: 'list', tripId: null, tab: 'itinerary' };
+let sync = { status: 'off', msg: '' };
+let token = null, fileId = null, tokenClient = null, syncTimer = null;
+
+function load() {
+  try { const r = JSON.parse(localStorage.getItem(LS_KEY)); if (r && Array.isArray(r.trips)) return r; } catch (e) {}
+  const d = { version: 1, trips: [seedPerth()], upcoming: [], updatedAt: Date.now() };
+  d.upcoming = computeUpcoming(d); return d;
+}
+const trip = () => D.trips.find(t => t.id === view.tripId);
+
+/* upcoming[] — root of vacationguru-data.json, recomputed on every save */
+function computeUpcoming(d) {
+  const today = todayStr(), out = [];
+  for (const t of d.trips) {
+    if (t.status === 'locked') continue;
+    const away = dayDiff(today, t.start);
+    if (away >= 0) out.push({ id: 'trip-' + t.id, type: 'trip', title: t.name, date: t.start, priority: away <= 7 ? 'high' : 'normal', source: 'vacationguru' });
+    for (const bk of t.bookings) if (!bk.booked && bk.deadline)
+      out.push({ id: 'due-' + bk.id, type: 'due-date', title: `${t.name}: ${bk.title}`, date: bk.deadline, priority: dayDiff(today, bk.deadline) <= 7 ? 'high' : 'normal', source: 'vacationguru' });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+function commit() {
+  D.updatedAt = Date.now(); D.upcoming = computeUpcoming(D);
+  try { localStorage.setItem(LS_KEY, JSON.stringify(D)); } catch (e) {}
+  render(); scheduleSync();
+}
+
+/* ===== Drive sync: direct fetch, res.ok checks, 401 reconnect ===== */
+function setSync(status, msg) { sync = { status, msg }; $('#syncMsg').textContent = msg || ''; $('#syncBtn').textContent = status === 'off' ? 'Connect Drive' : status === 'reconnect' || status === 'error' ? 'Reconnect' : 'Sync now'; }
+async function drive(url, opts = {}) {
+  if (!token) throw new Error('Not connected');
+  const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
+  if (r.status === 401) { token = null; setSync('reconnect', 'Session expired — reconnect'); throw new Error('401'); }
+  if (!r.ok) throw new Error('Drive ' + r.status + ': ' + (await r.text()).slice(0, 120));
+  return r;
+}
+async function findFile() {
+  const q = encodeURIComponent(`name='${FILE_NAME}' and trashed=false`);
+  const j = await (await drive(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id)`)).json();
+  return (j.files && j.files[0]) ? j.files[0].id : null;
+}
+async function push() {
+  const body = JSON.stringify(D);
+  if (!fileId) {
+    const bd = 'vg' + uid();
+    const mp = `--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name: FILE_NAME, mimeType: 'application/json' })}\r\n--${bd}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${bd}--`;
+    const j = await (await drive('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + bd }, body: mp })).json();
+    if (!j.id) throw new Error('Create returned no file id');
+    fileId = j.id;
+  } else {
+    await drive(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
+  }
+}
+async function initialSync() {
+  try {
+    setSync('busy', 'Syncing…');
+    fileId = await findFile();
+    if (fileId) {
+      const remote = await (await drive(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`)).json();
+      if (remote && Array.isArray(remote.trips) && (remote.updatedAt || 0) > (D.updatedAt || 0)) {
+        D = remote; D.upcoming = computeUpcoming(D); localStorage.setItem(LS_KEY, JSON.stringify(D)); render();
+      } else await push();
+    } else await push();
+    setSync('ok', 'Synced ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+  } catch (e) { if (e.message !== '401') setSync('error', 'Sync failed: ' + e.message); }
+}
+function scheduleSync() {
+  if (!token) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    try { setSync('busy', 'Saving…'); await push(); setSync('ok', 'Saved ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })); }
+    catch (e) { if (e.message !== '401') setSync('error', 'Save failed: ' + e.message); }
+  }, 800);
+}
+function connect() {
+  if (!window.google || !google.accounts) { setSync('error', 'Google sign-in still loading — retry'); return; }
+  if (!tokenClient) tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID, scope: SCOPE,
+    callback: r => { if (r.error || !r.access_token) { setSync('error', 'Sign-in failed: ' + (r.error || 'no token')); return; } token = r.access_token; initialSync(); },
+    error_callback: e => setSync('error', 'Sign-in cancelled')
+  });
+  tokenClient.requestAccessToken({ prompt: '' });
+}
+$('#syncBtn').onclick = () => { if (token && sync.status !== 'reconnect') initialSync(); else connect(); };
+$('#home').onclick = e => { e.preventDefault(); view = { page: 'list', tripId: null, tab: 'itinerary' }; render(); };
+
+/* ===== Modal ===== */
+function openModal(html, onSubmit) {
+  $('#modalBox').innerHTML = html; $('#modal').classList.remove('hidden');
+  const f = $('#modalBox form');
+  if (f) f.onsubmit = e => { e.preventDefault(); const ok = onSubmit(new FormData(f), f); if (ok !== false) closeModal(); };
+}
+function closeModal() { $('#modal').classList.add('hidden'); $('#modalBox').innerHTML = ''; }
+$('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal' || e.target.parentElement?.id === 'modal') closeModal(); });
+const field = (label, name, val = '', type = 'text', extra = '') => `<label class="lbl">${label}</label><input class="inp" name="${name}" type="${type}" value="${esc(val)}" ${extra}>`;
+const modalFoot = (extra = '') => `<div class="flex justify-between mt-5"><div>${extra}</div><div class="flex gap-2"><button type="button" class="btn btn-sand" onclick="closeModal()">Cancel</button><button class="btn btn-primary">Save</button></div></div>`;
+
+/* ===== Views ===== */
+function render() {
+  const app = $('#app');
+  if (view.page === 'trip' && trip()) app.innerHTML = tripView(trip()); else { view.page = 'list'; app.innerHTML = listView(); }
+}
+function badge(st) { const [l, c] = STATUS[st]; return `<span class="badge ${c}">${l}</span>`; }
+
+function listView() {
+  const trips = [...D.trips].sort((a, b) => b.start.localeCompare(a.start));
+  const up = D.upcoming.slice(0, 4);
+  return `
+  <div class="flex items-end justify-between mb-5"><div><h1 class="font-serif text-3xl font-bold">Your trips</h1><p class="text-sm text-navy-600">Planning → Active → Locked</p></div>
+  <button class="btn btn-primary" data-act="newTrip">+ New trip</button></div>
+  ${up.length ? `<div class="card p-4 mb-5 bg-sand-100"><div class="text-xs uppercase tracking-wider text-sand-600 mb-2">Coming up</div>${up.map(u => `<div class="flex justify-between text-sm py-0.5"><span>${u.type === 'trip' ? '✈️' : '⏰'} ${esc(u.title)}</span><span class="${u.priority === 'high' ? 'text-red-700 font-semibold' : 'text-navy-600'}">${fmtShort(u.date)}</span></div>`).join('')}</div>` : ''}
+  <div class="grid gap-3">${trips.length ? trips.map(t => {
+    const total = tripTotal(t);
+    return `<div class="card p-4 cursor-pointer hover:shadow-md transition" data-act="openTrip" data-id="${t.id}">
+      <div class="flex justify-between items-start gap-2"><div><div class="font-serif text-xl font-bold">${esc(t.name)}</div><div class="text-sm text-navy-600">${esc(t.destination)} · ${fmtShort(t.start)} – ${fmtShort(t.end)} · ${t.days.length} days</div></div>${badge(t.status)}</div>
+      <div class="flex flex-wrap gap-1 mt-2 items-center">${t.tags.map(g => `<span class="badge bg-sand-100 text-sand-600">${esc(g)}</span>`).join('')}<span class="text-xs text-navy-600 ml-auto">${t.budgetTier} ${total ? '· ' + money(total) : ''}</span></div></div>`;
+  }).join('') : '<div class="card p-8 text-center text-navy-600">No trips yet. Create one to get started.</div>'}</div>`;
+}
+
+function tripTotal(t) {
+  return t.bookings.reduce((s, b) => s + (Number(b.cost) || 0), 0) + t.days.reduce((s, d) => s + d.stops.reduce((x, st) => x + (Number(st.cost) || 0), 0), 0);
+}
+
+function tripView(t) {
+  const locked = t.status === 'locked';
+  const tabs = [['itinerary', 'Itinerary'], ['bookings', 'Bookings'], ['summary', 'Summary']];
+  return `
+  <button class="text-sm text-sand-600 mb-2" data-act="back">← All trips</button>
+  <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
+    <div><div class="flex items-center gap-2"><h1 class="font-serif text-3xl font-bold">${esc(t.name)}</h1>${badge(t.status)}</div>
+    <p class="text-sm text-navy-600">${esc(t.destination)} · ${fmtDate(t.start)} → ${fmtDate(t.end)}</p>
+    <p class="text-xs text-navy-600 mt-1">${esc(t.travellers.join(', '))}</p></div>
+    <div class="flex flex-wrap gap-2">
+      ${t.status === 'planning' ? '<button class="btn btn-sand" data-act="startTrip">Start trip</button>' : ''}
+      ${t.status === 'active' ? '<button class="btn btn-sand" data-act="backToPlanning">Back to planning</button>' : ''}
+      ${t.status !== 'locked' ? '<button class="btn btn-primary" data-act="lockTrip">Lock trip</button>' : '<button class="btn btn-primary" data-act="ratings">Ratings pass</button>'}
+      ${!locked ? '<button class="btn btn-sand" data-act="editTrip">Edit</button>' : ''}
+    </div></div>
+  ${locked ? `<div class="card p-3 mb-4 bg-sand-100 text-sm">🔒 Locked ${t.lockedAt ? fmtShort(t.lockedAt.slice(0, 10)) : ''}. Itinerary and bookings are read-only; ratings and actuals notes stay editable. Use this trip as a skeleton for the next one.</div>` : ''}
+  <div class="flex gap-1 border-b border-sand-200 mb-4">${tabs.map(([k, l]) => `<button data-act="tab" data-tab="${k}" class="px-4 py-2 text-sm font-medium ${view.tab === k ? 'border-b-2 border-navy-900 text-navy-900' : 'text-navy-600'}">${l}</button>`).join('')}</div>
+  ${view.tab === 'itinerary' ? itineraryTab(t, locked) : view.tab === 'bookings' ? bookingsTab(t, locked) : summaryTab(t)}`;
+}
+
+function itineraryTab(t, locked) {
+  return t.days.map((d, i) => {
+    const stops = [...d.stops].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+    return `<div class="card p-4 mb-3">
+      <div class="flex justify-between items-center mb-2"><div class="font-serif text-lg font-bold">Day ${i + 1} <span class="font-sans text-sm font-normal text-navy-600">· ${fmtDate(d.date)}</span></div>
+      ${locked ? '' : `<button class="btn btn-sand" data-act="addStop" data-day="${i}">+ Stop</button>`}</div>
+      ${stops.length ? stops.map(s => `<div class="flex gap-3 py-2 border-t border-sand-100 ${locked ? 'ro' : ''}">
+        <div class="text-xl leading-none pt-0.5">${TYPES[s.type][0]}</div>
+        <div class="flex-1 min-w-0"><div class="flex flex-wrap items-baseline gap-x-2"><span class="font-medium">${esc(s.title)}</span><span class="text-xs text-navy-600">${s.time ? esc(s.time) : ''}${s.cost ? ' · ' + money(s.cost) : ''}</span>${s.link ? `<a class="text-xs underline text-sand-600" target="_blank" rel="noopener" href="${esc(s.link)}">link</a>` : ''}</div>
+        ${s.notes ? `<div class="text-sm text-navy-600">${esc(s.notes)}</div>` : ''}${s.actualNotes ? `<div class="text-sm italic text-sand-600">Actual: ${esc(s.actualNotes)}</div>` : ''}
+        ${s.rating ? `<div>${stars(s.rating)}</div>` : ''}</div>
+        <button class="text-xs text-navy-600 underline self-start" data-act="editStop" data-day="${i}" data-id="${s.id}">${locked ? 'Rate' : 'Edit'}</button></div>`).join('') : '<div class="text-sm text-navy-600 py-1">Nothing planned yet.</div>'}
+    </div>`;
+  }).join('');
+}
+
+function bookingsTab(t, locked) {
+  const today = todayStr();
+  return `${locked ? '' : '<div class="mb-3"><button class="btn btn-sand" data-act="addBooking">+ Booking</button></div>'}
+  <div class="grid gap-2">${t.bookings.length ? t.bookings.map(b => {
+    let u = '';
+    if (!b.booked && b.deadline) { const n = dayDiff(today, b.deadline); u = n < 0 ? `<span class="badge bg-red-100 text-red-800">Overdue ${-n}d</span>` : n <= 7 ? `<span class="badge bg-amber-100 text-amber-800">Due in ${n}d</span>` : `<span class="badge bg-sand-100 text-sand-600">Due ${fmtShort(b.deadline)}</span>`; }
+    return `<div class="card p-3 flex items-start gap-3">
+      <input type="checkbox" class="mt-1.5" ${b.booked ? 'checked' : ''} ${locked ? 'disabled' : ''} data-act="toggleBooked" data-id="${b.id}">
+      <div class="flex-1 min-w-0"><div class="flex flex-wrap items-center gap-2"><span class="font-medium ${b.booked ? '' : 'text-red-800'}">${esc(b.title)}</span>${u}${b.booked ? '<span class="badge bg-emerald-100 text-emerald-800">Booked</span>' : '<span class="badge bg-red-100 text-red-800">Not booked</span>'}</div>
+      <div class="text-xs text-navy-600">${b.confirmation ? 'Conf: ' + esc(b.confirmation) + ' · ' : ''}${b.notes ? esc(b.notes) : ''}</div></div>
+      <div class="text-sm font-medium whitespace-nowrap">${b.cost != null ? money(b.cost) : '<span class="text-navy-600 text-xs">no amount</span>'}</div>
+      ${locked ? '' : `<button class="text-xs underline text-navy-600" data-act="editBooking" data-id="${b.id}">Edit</button>`}</div>`;
+  }).join('') : '<div class="card p-6 text-center text-navy-600">No bookings yet.</div>'}</div>`;
+}
+
+function summaryTab(t) {
+  const bTotal = t.bookings.reduce((s, b) => s + (Number(b.cost) || 0), 0);
+  const sTotal = t.days.reduce((s, d) => s + d.stops.reduce((x, st) => x + (Number(st.cost) || 0), 0), 0);
+  const missing = t.bookings.filter(b => b.cost == null).length;
+  const rated = t.days.flatMap(d => d.stops).filter(s => s.rating);
+  const avg = rated.length ? (rated.reduce((s, x) => s + x.rating, 0) / rated.length).toFixed(1) : '—';
+  const byType = {}; t.days.forEach(d => d.stops.forEach(s => byType[s.type] = (byType[s.type] || 0) + 1));
+  const locked = D.trips.filter(x => x.status === 'locked' && x.id !== t.id);
+  return `<div class="grid grid-cols-2 gap-3 mb-4">
+    ${[['Bookings total', money(bTotal) || '$0'], ['Stop costs', money(sTotal) || '$0'], ['Grand total', money(bTotal + sTotal) || '$0'], ['Avg rating', avg]].map(([l, v]) => `<div class="card p-4"><div class="text-xs uppercase tracking-wider text-sand-600">${l}</div><div class="font-serif text-2xl font-bold">${v}</div></div>`).join('')}</div>
+    ${missing ? `<p class="text-sm text-amber-800 mb-3">⚠ ${missing} booking${missing > 1 ? 's have' : ' has'} no amount recorded, so totals are incomplete.</p>` : ''}
+    <div class="card p-4"><div class="text-xs uppercase tracking-wider text-sand-600 mb-2">Stops by type</div>${Object.entries(byType).map(([k, v]) => `<div class="flex justify-between text-sm"><span>${TYPES[k][0]} ${TYPES[k][1]}</span><span>${v}</span></div>`).join('') || '<span class="text-sm text-navy-600">None</span>'}</div>
+    <p class="text-xs text-navy-600 mt-3">Tags: ${t.tags.map(esc).join(', ') || '—'} · Budget tier ${t.budgetTier}${locked.length ? '' : ''}</p>
+    ${t.notes ? `<p class="text-sm mt-3">${esc(t.notes)}</p>` : ''}`;
+}
+
+/* ===== Actions ===== */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const a = el.dataset.act, t = view.tripId ? trip() : null;
+  if (a === 'newTrip') return newTripModal();
+  if (a === 'openTrip') { view = { page: 'trip', tripId: el.dataset.id, tab: 'itinerary' }; return render(); }
+  if (a === 'back') { view = { page: 'list', tripId: null, tab: 'itinerary' }; return render(); }
+  if (a === 'tab') { view.tab = el.dataset.tab; return render(); }
+  if (a === 'startTrip') { t.status = 'active'; return commit(); }
+  if (a === 'backToPlanning') { t.status = 'planning'; return commit(); }
+  if (a === 'lockTrip') return openModal(`<h2 class="font-serif text-xl font-bold mb-2">Lock "${esc(t.name)}"?</h2><p class="text-sm text-navy-600">The itinerary and bookings become read-only reference data. You'll go straight into the ratings pass; ratings and actuals notes stay editable afterwards.</p><div class="flex justify-end gap-2 mt-5"><button class="btn btn-sand" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="confirmLock">Lock and rate</button></div>`) || ($('#confirmLock').onclick = () => { t.status = 'locked'; t.lockedAt = new Date().toISOString(); closeModal(); commit(); ratingsModal(t); });
+  if (a === 'ratings') return ratingsModal(t);
+  if (a === 'editTrip') return editTripModal(t);
+  if (a === 'addStop') return stopModal(t, +el.dataset.day, null);
+  if (a === 'editStop') return stopModal(t, +el.dataset.day, el.dataset.id);
+  if (a === 'addBooking') return bookingModal(t, null);
+  if (a === 'editBooking') return bookingModal(t, el.dataset.id);
+  if (a === 'toggleBooked') { const b = t.bookings.find(x => x.id === el.dataset.id); b.booked = el.checked; return commit(); }
+});
+
+function newTripModal() {
+  const skel = D.trips.filter(t => t.status === 'locked');
+  openModal(`<h2 class="font-serif text-xl font-bold">New trip</h2><form>
+    ${field('Trip name', 'name', '', 'text', 'required')}${field('Destination', 'destination')}
+    <div class="grid grid-cols-2 gap-3"><div>${field('Start', 'start', '', 'date', 'required')}</div><div>${field('End', 'end', '', 'date', 'required')}</div></div>
+    ${field('Travellers (comma separated)', 'travellers', 'Marvin, Caroline, Cobae (toddler)')}
+    ${skel.length ? `<label class="lbl">Build from skeleton</label><select class="inp" name="skeleton"><option value="">Start blank</option>${skel.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select><p class="text-xs text-navy-600 mt-1">Inherits tags, budget tier and stops you rated 4★ or higher.</p>` : '<p class="text-xs text-navy-600 mt-3">Lock a finished trip to unlock skeleton building.</p>'}
+    <p id="formErr" class="text-sm text-red-700 mt-2"></p>${modalFoot()}</form>`, fd => {
+    const start = fd.get('start'), end = fd.get('end');
+    if (end < start) { $('#formErr').textContent = 'End date is before the start date.'; return false; }
+    const n = dayDiff(start, end) + 1;
+    if (n > 60) { $('#formErr').textContent = 'Trips are capped at 60 days.'; return false; }
+    const sk = D.trips.find(x => x.id === fd.get('skeleton'));
+    const nt = { id: uid(), name: fd.get('name').trim(), destination: fd.get('destination').trim(), start, end, status: 'planning',
+      tags: sk ? [...sk.tags] : [], budgetTier: sk ? sk.budgetTier : '$$', travellers: fd.get('travellers').split(',').map(s => s.trim()).filter(Boolean), notes: sk ? `Built from skeleton: ${sk.name}` : '', lockedAt: null,
+      days: Array.from({ length: n }, (_, i) => ({ date: addDays(start, i), stops: [] })), bookings: [] };
+    if (sk) sk.days.forEach((d, i) => d.stops.filter(s => s.rating >= 4).forEach(s => nt.days[Math.min(i, n - 1)].stops.push({ ...s, id: uid(), rating: 0, actualNotes: '', cost: s.cost, notes: s.notes })));
+    D.trips.push(nt); view = { page: 'trip', tripId: nt.id, tab: 'itinerary' }; commit();
+  });
+}
+
+function editTripModal(t) {
+  openModal(`<h2 class="font-serif text-xl font-bold">Edit trip</h2><form>
+    ${field('Trip name', 'name', t.name, 'text', 'required')}${field('Destination', 'destination', t.destination)}
+    ${field('Travellers (comma separated)', 'travellers', t.travellers.join(', '))}${field('Tags (comma separated)', 'tags', t.tags.join(', '))}
+    <label class="lbl">Budget tier</label><select class="inp" name="tier">${['$', '$$', '$$$'].map(x => `<option ${x === t.budgetTier ? 'selected' : ''}>${x}</option>`).join('')}</select>
+    <label class="lbl">Notes</label><textarea class="inp" name="notes" rows="3">${esc(t.notes)}</textarea>
+    ${modalFoot('<button type="button" class="btn btn-danger" id="delTrip">Delete trip</button>')}</form>`, fd => {
+    t.name = fd.get('name').trim(); t.destination = fd.get('destination').trim();
+    t.travellers = fd.get('travellers').split(',').map(s => s.trim()).filter(Boolean); t.tags = fd.get('tags').split(',').map(s => s.trim()).filter(Boolean);
+    t.budgetTier = fd.get('tier'); t.notes = fd.get('notes'); commit();
+  });
+  $('#delTrip').onclick = () => { if (confirm(`Delete "${t.name}"? This cannot be undone.`)) { D.trips = D.trips.filter(x => x.id !== t.id); view = { page: 'list', tripId: null, tab: 'itinerary' }; closeModal(); commit(); } };
+}
+
+function stopModal(t, di, id) {
+  const locked = t.status === 'locked';
+  const s = id ? t.days[di].stops.find(x => x.id === id) : { type: 'activity', time: '', title: '', notes: '', cost: null, link: '', rating: 0, actualNotes: '' };
+  let rating = s.rating || 0;
+  const ro = locked ? 'disabled' : '';
+  openModal(`<h2 class="font-serif text-xl font-bold">${locked ? 'Rate: ' + esc(s.title) : id ? 'Edit stop' : 'Add stop'} <span class="text-sm font-sans text-navy-600">Day ${di + 1}</span></h2><form>
+    <label class="lbl">Type</label><select class="inp" name="type" ${ro}>${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${k === s.type ? 'selected' : ''}>${v[0]} ${v[1]}</option>`).join('')}</select>
+    ${field('Title', 'title', s.title, 'text', 'required ' + ro)}
+    <div class="grid grid-cols-2 gap-3"><div>${field('Time', 'time', s.time, 'time', ro)}</div><div>${field('Cost', 'cost', s.cost ?? '', 'number', 'step="0.01" ' + ro)}</div></div>
+    ${field('Link', 'link', s.link, 'url', ro)}
+    <label class="lbl">Notes</label><textarea class="inp" name="notes" rows="2" ${ro}>${esc(s.notes)}</textarea>
+    <label class="lbl">Rating</label><div id="starBox">${stars(rating, true)}</div>
+    <label class="lbl">Actuals notes</label><textarea class="inp" name="actualNotes" rows="2">${esc(s.actualNotes)}</textarea>
+    ${modalFoot(id && !locked ? '<button type="button" class="btn btn-danger" id="delStop">Delete</button>' : '')}</form>`, fd => {
+    if (!locked) { s.type = fd.get('type'); s.title = fd.get('title').trim(); s.time = fd.get('time'); s.cost = num(fd.get('cost')); s.link = fd.get('link').trim(); s.notes = fd.get('notes'); }
+    s.rating = rating; s.actualNotes = fd.get('actualNotes');
+    if (!id) { s.id = uid(); t.days[di].stops.push(s); }
+    commit();
+  });
+  $('#starBox').onclick = e => { const st = e.target.closest('[data-star]'); if (!st) return; const v = +st.dataset.star; rating = rating === v ? 0 : v; $('#starBox').innerHTML = stars(rating, true); };
+  const del = $('#delStop'); if (del) del.onclick = () => { t.days[di].stops = t.days[di].stops.filter(x => x.id !== id); closeModal(); commit(); };
+}
+
+function bookingModal(t, id) {
+  const b = id ? t.bookings.find(x => x.id === id) : { title: '', confirmation: '', cost: null, deadline: '', booked: false, notes: '' };
+  openModal(`<h2 class="font-serif text-xl font-bold">${id ? 'Edit booking' : 'Add booking'}</h2><form>
+    ${field('What', 'title', b.title, 'text', 'required')}${field('Confirmation number', 'confirmation', b.confirmation)}
+    <div class="grid grid-cols-2 gap-3"><div>${field('Cost', 'cost', b.cost ?? '', 'number', 'step="0.01"')}</div><div>${field('Deadline', 'deadline', b.deadline, 'date')}</div></div>
+    ${field('Notes', 'notes', b.notes)}
+    <label class="flex items-center gap-2 mt-3 text-sm"><input type="checkbox" name="booked" ${b.booked ? 'checked' : ''}> Booked / paid</label>
+    ${modalFoot(id ? '<button type="button" class="btn btn-danger" id="delBk">Delete</button>' : '')}</form>`, fd => {
+    Object.assign(b, { title: fd.get('title').trim(), confirmation: fd.get('confirmation').trim(), cost: num(fd.get('cost')), deadline: fd.get('deadline'), notes: fd.get('notes'), booked: fd.get('booked') === 'on' });
+    if (!id) { b.id = uid(); t.bookings.push(b); }
+    commit();
+  });
+  const del = $('#delBk'); if (del) del.onclick = () => { t.bookings = t.bookings.filter(x => x.id !== id); closeModal(); commit(); };
+}
+
+function ratingsModal(t) {
+  const all = t.days.flatMap((d, i) => d.stops.map(s => ({ s, i })));
+  const draft = {}; all.forEach(({ s }) => draft[s.id] = { r: s.rating || 0, n: s.actualNotes || '' });
+  openModal(`<h2 class="font-serif text-xl font-bold mb-1">Ratings pass</h2><p class="text-sm text-navy-600 mb-3">Rate each stop and note what actually happened. 4★ and up carry into future skeletons.</p>
+    <div class="max-h-[60vh] overflow-y-auto pr-1">${all.map(({ s, i }) => `<div class="py-2 border-t border-sand-100" data-rid="${s.id}">
+      <div class="text-sm font-medium">${TYPES[s.type][0]} ${esc(s.title)} <span class="text-xs text-navy-600">Day ${i + 1}</span></div>
+      <div class="rbox">${stars(draft[s.id].r, true)}</div>
+      <input class="inp mt-1" placeholder="Actuals notes" value="${esc(draft[s.id].n)}"></div>`).join('') || '<p class="text-sm">No stops to rate.</p>'}</div>
+    <div class="flex justify-end gap-2 mt-4"><button class="btn btn-sand" onclick="closeModal()">Later</button><button class="btn btn-primary" id="saveRatings">Save ratings</button></div>`);
+  $('#modalBox').onclick = e => { const st = e.target.closest('[data-star]'); if (!st) return; const row = st.closest('[data-rid]'); const v = +st.dataset.star; const d = draft[row.dataset.rid]; d.r = d.r === v ? 0 : v; row.querySelector('.rbox').innerHTML = stars(d.r, true); };
+  $('#saveRatings').onclick = () => {
+    $('#modalBox').querySelectorAll('[data-rid]').forEach(row => { draft[row.dataset.rid].n = row.querySelector('input').value; });
+    all.forEach(({ s }) => { s.rating = draft[s.id].r; s.actualNotes = draft[s.id].n; });
+    $('#modalBox').onclick = null; closeModal(); commit();
+  };
+}
+
+/* ===== Boot ===== */
+setSync('off', '');
+render();
+</script>
+</body>
+</html>

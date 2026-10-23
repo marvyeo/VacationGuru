@@ -65,8 +65,9 @@ A single-file trip planner (vanilla JS, Tailwind CDN, Playfair Display and Inter
 | GitHub Pages | ✅ Enabled by Marvin 2026-10-23. Site will 404 until `index.html` is committed. |
 | Google OAuth | ✅ Marked done by Marvin 2026-10-23 (To-Do item 2). Not yet tested, since there is no app to sign in from. |
 | Drive file | ❌ No `vacationguru-data.json` in Drive. The app has never been signed into or saved. |
-| Code | `index.html` was delivered as a download in the original chat ("VacationGuru", last updated 2026-10-16). It lives only in that chat or on Marvin's computer. |
-| `upcoming[]` | Not built. |
+| Code | ✅ `index.html` committed 2026-10-23 (uploaded by Marvin). Single file, ~33 KB. Pages should serve it at `https://marvyeo.github.io/VacationGuru/`. |
+| `upcoming[]` | ✅ Already in the code: `computeUpcoming()` writes `trip` and `due-date` items at the root of `vacationguru-data.json` on every save. Untested against Life Plan. |
+| Ecosystem lessons | ✅ Already in the code: direct Drive `fetch()`, `res.ok` checks, 401 reconnect. ❌ Not yet: PWA files (`manifest.json`, `sw.js`, icons), iPhone redirect sign-in fallback, multi-device merge. |
 | Seed data | Perth & Margaret River, 2–8 Nov 2026, 7 days. Travellers: Marvin, Caroline, Cobae (toddler) and a guest adult. |
 
 **Conclusion:** VacationGuru was built but never deployed or used. The Perth trip was planned and paid outside the app. **Never modify the "Caroline & Marvin Life Planner" Google Sheet**; read it only if Marvin asks.
@@ -102,7 +103,7 @@ Don't deploy VacationGuru for Perth; the trip is fully settled outside the app. 
 
 ## 5. To-Do When Resuming
 
-1. Locate `index.html` (Marvin's computer, or the original chat's download) and commit it here.
+1. ✅ DONE 2026-10-23: `index.html` committed.
 2. ✅ DONE 2026-10-23: GitHub Pages enabled and Google Cloud OAuth set up. Still to verify once `index.html` is live: sign-in works from `https://marvyeo.github.io/VacationGuru/`.
 3. Apply the ecosystem lessons learned since the build:
    - Use direct `fetch()` calls to the Drive REST API (no `gapi.client.drive` or `discoveryDocs`).
@@ -110,8 +111,8 @@ Don't deploy VacationGuru for Perth; the trip is fully settled outside the app. 
    - Handle the 401 token-expiry reconnect.
    - PWA: `manifest.json` with `"id": "/VacationGuru/"` (never `"./"`), network-first `sw.js`, ecosystem icons, iPhone redirect sign-in fallback.
    - Optional: multi-device merge, as in TV World.
-4. Reconcile the Perth seed data with Section 3, mark the trip Locked, and do the ratings pass.
-5. Add `upcoming[]` per the ecosystem envelope:
+4. Perth seed data is already reconciled with Section 3 in the code (Quest, Zoo and Rottnest bus added, Adina stays split). Still to do after the trip: enter the missing amounts (Quest, Rottnest ferry, Jewel Cave), mark the trip Locked, and do the ratings pass.
+5. ✅ `upcoming[]` is built (see Section 2). Remaining: confirm Life Plan reads it. Spec for reference:
    - `type: "trip"` for departure dates (priority high within 7 days).
    - `type: "due-date"` for booking deadlines and unpaid items.
    - Recompute on every save, at the root of `vacationguru-data.json`.
@@ -122,3 +123,4 @@ Don't deploy VacationGuru for Perth; the trip is fully settled outside the app. 
 - **ver 1 (2026-10-20):** Initial state file. Recorded that the app was never deployed, the Perth booking reference, and the hold decision. Perth confirmed settled.
 - **ver 2 (2026-10-22):** moved into the new `marvyeo/VacationGuru` repo; added Session Rules and `CLAUDE.md`; PWA checklist added to the resume steps.
 - **ver 3 (2026-10-23):** Marvin enabled GitHub Pages and finished the Google OAuth setup. Recorded both. `index.html` is still not in the repo (it was never found), so it is the next blocker. Next chat name bumped to ver 4.
+- **ver 3 (2026-10-23, later):** `index.html` uploaded by Marvin and committed. It already has the reconciled Perth seed, `upcoming[]`, direct Drive fetch, `res.ok` checks and 401 reconnect. PWA files and the iPhone sign-in fallback are still missing.
