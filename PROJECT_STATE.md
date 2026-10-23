@@ -55,6 +55,10 @@ A single-file trip planner (vanilla JS, Tailwind CDN, Playfair Display and Inter
 - **Lock mechanic:** locking a trip triggers a post-trip ratings pass. Locked trips are read-only reference data; ratings and actuals notes stay editable.
 - **Build from skeleton:** a new trip inherits tags, budget tier and highly rated stops from a locked trip.
 - **Google Drive sync:** shared OAuth Client ID `669494100250-gvromuq72r7j0djmkd4vdbdq5damncj7.apps.googleusercontent.com`, scope `drive.file`, file `vacationguru-data.json`.
+- **Booking details (added 2026-10-23, data v2):** each booking has a category (flight, stay, car rental, activity, other), booking reference, booked via (Direct, Trip.com, Agoda, Klook or free text), pax covered and cost. Flights add carrier and seats.
+- **Start and end times:** every itinerary stop has Starts and Ends times (e.g. flight departs and arrives).
+- **Linked bookings:** a stop can link to one or more bookings and shows their cost, source, pax, reference and seats underneath.
+- **Checklist tab:** grouped to-do items with optional due dates. Undone items with a due date feed `upcoming[]`. New trips copy the checklist from a skeleton, with everything unticked.
 - **Icon:** suitcase glyph in the ecosystem icon set (`marvyeo/LifePlan/design/make_icons.py`).
 
 ## 2. Current Facts (updated 2026-10-22)
@@ -67,6 +71,7 @@ A single-file trip planner (vanilla JS, Tailwind CDN, Playfair Display and Inter
 | Drive file | ❌ No `vacationguru-data.json` in Drive. The app has never been signed into or saved. |
 | Code | ✅ `index.html` committed 2026-10-23 (uploaded by Marvin). Single file, ~33 KB. Pages should serve it at `https://marvyeo.github.io/VacationGuru/`. |
 | `upcoming[]` | ✅ Already in the code: `computeUpcoming()` writes `trip` and `due-date` items at the root of `vacationguru-data.json` on every save. Untested against Life Plan. |
+| Data version | ✅ v2 (2026-10-23). `migrate()` upgrades v1 data from localStorage or Drive on load, once. Perth stops were auto-linked to bookings by name. Not yet filled in for Perth: booking references, seats, pax for hotels/car/attractions, end times for stops, checklist due dates. |
 | Ecosystem lessons | ✅ Already in the code: direct Drive `fetch()`, `res.ok` checks, 401 reconnect. ❌ Not yet: PWA files (`manifest.json`, `sw.js`, icons), iPhone redirect sign-in fallback, multi-device merge. |
 | Seed data | Perth & Margaret River, 2–8 Nov 2026, 7 days. Travellers: Marvin, Caroline, Cobae (toddler) and a guest adult. |
 
@@ -124,3 +129,4 @@ Don't deploy VacationGuru for Perth; the trip is fully settled outside the app. 
 - **ver 2 (2026-10-22):** moved into the new `marvyeo/VacationGuru` repo; added Session Rules and `CLAUDE.md`; PWA checklist added to the resume steps.
 - **ver 3 (2026-10-23):** Marvin enabled GitHub Pages and finished the Google OAuth setup. Recorded both. `index.html` is still not in the repo (it was never found), so it is the next blocker. Next chat name bumped to ver 4.
 - **ver 3 (2026-10-23, later):** `index.html` uploaded by Marvin and committed. It already has the reconciled Perth seed, `upcoming[]`, direct Drive fetch, `res.ok` checks and 401 reconnect. PWA files and the iPhone sign-in fallback are still missing.
+- **ver 3 (2026-10-23, later still):** Booking details (category, reference, booked via, pax, carrier, seats), start and end times on stops, stop-to-booking links, and a Checklist tab. Added `migrate()` so existing Drive data upgrades without loss. Tested in Node against the seed only, not against Marvin's saved Drive file or in a browser.

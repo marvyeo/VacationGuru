@@ -50,6 +50,9 @@ const LS_KEY = 'vacationguru-data-v1';
 const TYPES = { accommodation: ['🛏️', 'Stay'], dining: ['🍽️', 'Dining'], activity: ['🎟️', 'Activity'], transport: ['✈️', 'Transport'], booking: ['📌', 'Booking'] };
 const STATUS = { planning: ['Planning', 'bg-sand-200 text-navy-800'], active: ['Active', 'bg-emerald-100 text-emerald-800'], locked: ['Locked', 'bg-navy-800 text-sand-100'] };
 
+const CATS = { flight: ['✈️', 'Flight'], stay: ['🛏️', 'Stay'], car: ['🚗', 'Car rental'], attraction: ['🎟️', 'Activity'], other: ['📌', 'Other'] };
+const VIAS = ['Direct', 'Trip.com', 'Agoda', 'Klook', 'Booking.com'];
+
 /* ===== Helpers ===== */
 const $ = s => document.querySelector(s);
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
@@ -114,9 +117,9 @@ let sync = { status: 'off', msg: '' };
 let token = null, fileId = null, tokenClient = null, syncTimer = null;
 
 function load() {
-  try { const r = JSON.parse(localStorage.getItem(LS_KEY)); if (r && Array.isArray(r.trips)) return r; } catch (e) {}
+  try { const r = JSON.parse(localStorage.getItem(LS_KEY)); if (r && Array.isArray(r.trips)) return migrate(r); } catch (e) {}
   const d = { version: 1, trips: [seedPerth()], upcoming: [], updatedAt: Date.now() };
-  d.upcoming = computeUpcoming(d); return d;
+  migrate(d); d.upcoming = computeUpcoming(d); return d;
 }
 const trip = () => D.trips.find(t => t.id === view.tripId);
 
@@ -129,6 +132,8 @@ function computeUpcoming(d) {
     if (away >= 0) out.push({ id: 'trip-' + t.id, type: 'trip', title: t.name, date: t.start, priority: away <= 7 ? 'high' : 'normal', source: 'vacationguru' });
     for (const bk of t.bookings) if (!bk.booked && bk.deadline)
       out.push({ id: 'due-' + bk.id, type: 'due-date', title: `${t.name}: ${bk.title}`, date: bk.deadline, priority: dayDiff(today, bk.deadline) <= 7 ? 'high' : 'normal', source: 'vacationguru' });
+    for (const c of (t.checklist || [])) if (!c.done && c.due)
+      out.push({ id: 'chk-' + c.id, type: 'due-date', title: `${t.name}: ${c.text}`, date: c.due, priority: dayDiff(today, c.due) <= 7 ? 'high' : 'normal', source: 'vacationguru' });
   }
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }
@@ -171,7 +176,7 @@ async function initialSync() {
     if (fileId) {
       const remote = await (await drive(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`)).json();
       if (remote && Array.isArray(remote.trips) && (remote.updatedAt || 0) > (D.updatedAt || 0)) {
-        D = remote; D.upcoming = computeUpcoming(D); localStorage.setItem(LS_KEY, JSON.stringify(D)); render();
+        D = migrate(remote); D.upcoming = computeUpcoming(D); localStorage.setItem(LS_KEY, JSON.stringify(D)); render();
       } else await push();
     } else await push();
     setSync('ok', 'Synced ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
@@ -236,7 +241,7 @@ function tripTotal(t) {
 
 function tripView(t) {
   const locked = t.status === 'locked';
-  const tabs = [['itinerary', 'Itinerary'], ['bookings', 'Bookings'], ['summary', 'Summary']];
+  const tabs = [['itinerary', 'Itinerary'], ['bookings', 'Bookings'], ['checklist', 'Checklist'], ['summary', 'Summary']];
   return `
   <button class="text-sm text-sand-600 mb-2" data-act="back">← All trips</button>
   <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
@@ -251,7 +256,7 @@ function tripView(t) {
     </div></div>
   ${locked ? `<div class="card p-3 mb-4 bg-sand-100 text-sm">🔒 Locked ${t.lockedAt ? fmtShort(t.lockedAt.slice(0, 10)) : ''}. Itinerary and bookings are read-only; ratings and actuals notes stay editable. Use this trip as a skeleton for the next one.</div>` : ''}
   <div class="flex gap-1 border-b border-sand-200 mb-4">${tabs.map(([k, l]) => `<button data-act="tab" data-tab="${k}" class="px-4 py-2 text-sm font-medium ${view.tab === k ? 'border-b-2 border-navy-900 text-navy-900' : 'text-navy-600'}">${l}</button>`).join('')}</div>
-  ${view.tab === 'itinerary' ? itineraryTab(t, locked) : view.tab === 'bookings' ? bookingsTab(t, locked) : summaryTab(t)}`;
+  ${view.tab === 'itinerary' ? itineraryTab(t, locked) : view.tab === 'bookings' ? bookingsTab(t, locked) : view.tab === 'checklist' ? checklistTab(t) : summaryTab(t)}`;
 }
 
 function itineraryTab(t, locked) {
@@ -262,9 +267,9 @@ function itineraryTab(t, locked) {
       ${locked ? '' : `<button class="btn btn-sand" data-act="addStop" data-day="${i}">+ Stop</button>`}</div>
       ${stops.length ? stops.map(s => `<div class="flex gap-3 py-2 border-t border-sand-100 ${locked ? 'ro' : ''}">
         <div class="text-xl leading-none pt-0.5">${TYPES[s.type][0]}</div>
-        <div class="flex-1 min-w-0"><div class="flex flex-wrap items-baseline gap-x-2"><span class="font-medium">${esc(s.title)}</span><span class="text-xs text-navy-600">${s.time ? esc(s.time) : ''}${s.cost ? ' · ' + money(s.cost) : ''}</span>${s.link ? `<a class="text-xs underline text-sand-600" target="_blank" rel="noopener" href="${esc(s.link)}">link</a>` : ''}</div>
+        <div class="flex-1 min-w-0"><div class="flex flex-wrap items-baseline gap-x-2"><span class="font-medium">${esc(s.title)}</span><span class="text-xs text-navy-600">${s.time ? esc(s.time) + (s.endTime ? '–' + esc(s.endTime) : '') : (s.endTime ? 'until ' + esc(s.endTime) : '')}${s.cost ? ' · ' + money(s.cost) : ''}</span>${s.link ? `<a class="text-xs underline text-sand-600" target="_blank" rel="noopener" href="${esc(s.link)}">link</a>` : ''}</div>
         ${s.notes ? `<div class="text-sm text-navy-600">${esc(s.notes)}</div>` : ''}${s.actualNotes ? `<div class="text-sm italic text-sand-600">Actual: ${esc(s.actualNotes)}</div>` : ''}
-        ${s.rating ? `<div>${stars(s.rating)}</div>` : ''}</div>
+        ${linkedLines(t, s)}${s.rating ? `<div>${stars(s.rating)}</div>` : ''}</div>
         <button class="text-xs text-navy-600 underline self-start" data-act="editStop" data-day="${i}" data-id="${s.id}">${locked ? 'Rate' : 'Edit'}</button></div>`).join('') : '<div class="text-sm text-navy-600 py-1">Nothing planned yet.</div>'}
     </div>`;
   }).join('');
@@ -278,8 +283,8 @@ function bookingsTab(t, locked) {
     if (!b.booked && b.deadline) { const n = dayDiff(today, b.deadline); u = n < 0 ? `<span class="badge bg-red-100 text-red-800">Overdue ${-n}d</span>` : n <= 7 ? `<span class="badge bg-amber-100 text-amber-800">Due in ${n}d</span>` : `<span class="badge bg-sand-100 text-sand-600">Due ${fmtShort(b.deadline)}</span>`; }
     return `<div class="card p-3 flex items-start gap-3">
       <input type="checkbox" class="mt-1.5" ${b.booked ? 'checked' : ''} ${locked ? 'disabled' : ''} data-act="toggleBooked" data-id="${b.id}">
-      <div class="flex-1 min-w-0"><div class="flex flex-wrap items-center gap-2"><span class="font-medium ${b.booked ? '' : 'text-red-800'}">${esc(b.title)}</span>${u}${b.booked ? '<span class="badge bg-emerald-100 text-emerald-800">Booked</span>' : '<span class="badge bg-red-100 text-red-800">Not booked</span>'}</div>
-      <div class="text-xs text-navy-600">${b.confirmation ? 'Conf: ' + esc(b.confirmation) + ' · ' : ''}${b.notes ? esc(b.notes) : ''}</div></div>
+      <div class="flex-1 min-w-0"><div class="flex flex-wrap items-center gap-2"><span class="font-medium ${b.booked ? '' : 'text-red-800'}">${CATS[b.category || 'other'][0]} ${esc(b.title)}</span>${u}${b.booked ? '<span class="badge bg-emerald-100 text-emerald-800">Booked</span>' : '<span class="badge bg-red-100 text-red-800">Not booked</span>'}</div>
+      <div class="text-xs text-navy-600">${bookingMeta(b)}</div></div>
       <div class="text-sm font-medium whitespace-nowrap">${b.cost != null ? money(b.cost) : '<span class="text-navy-600 text-xs">no amount</span>'}</div>
       ${locked ? '' : `<button class="text-xs underline text-navy-600" data-act="editBooking" data-id="${b.id}">Edit</button>`}</div>`;
   }).join('') : '<div class="card p-6 text-center text-navy-600">No bookings yet.</div>'}</div>`;
@@ -301,6 +306,77 @@ function summaryTab(t) {
     ${t.notes ? `<p class="text-sm mt-3">${esc(t.notes)}</p>` : ''}`;
 }
 
+/* ===== Booking details, checklist, migration ===== */
+function bookingMeta(b) {
+  const p = [];
+  if (b.carrier) p.push(esc(b.carrier));
+  if (b.bookedVia) p.push('via ' + esc(b.bookedVia));
+  if (b.pax) p.push(b.pax + ' pax');
+  if (b.confirmation) p.push('Ref: ' + esc(b.confirmation));
+  if (b.seats) p.push('Seats: ' + esc(b.seats));
+  if (b.notes) p.push(esc(b.notes));
+  return p.join(' · ');
+}
+function linkedLines(t, s) {
+  return (s.bookingIds || []).map(id => t.bookings.find(b => b.id === id)).filter(Boolean)
+    .map(b => `<div class="text-xs text-sand-600">🔗 ${esc(b.title)}${b.cost != null ? ' · ' + money(b.cost) : ''}${bookingMeta(b) ? ' · ' + bookingMeta(b) : ''}</div>`).join('');
+}
+
+function checklistTab(t) {
+  const items = t.checklist || [], done = items.filter(c => c.done).length, today = todayStr();
+  const groups = [...new Set(items.map(c => c.group || 'General'))];
+  return `<div class="flex items-center justify-between mb-3"><div class="text-sm text-navy-600">${done} of ${items.length} done</div><button class="btn btn-sand" data-act="addCheck">+ Item</button></div>`
+    + (groups.map(g => `<div class="card p-3 mb-3"><div class="text-xs uppercase tracking-wider text-sand-600 mb-1">${esc(g)}</div>${items.filter(c => (c.group || 'General') === g).map(c => {
+      let u = '';
+      if (!c.done && c.due) { const n = dayDiff(today, c.due); u = n < 0 ? `<span class="badge bg-red-100 text-red-800">Overdue ${-n}d</span>` : n <= 7 ? `<span class="badge bg-amber-100 text-amber-800">Due in ${n}d</span>` : `<span class="badge bg-sand-100 text-sand-600">Due ${fmtShort(c.due)}</span>`; }
+      return `<div class="flex items-center gap-3 py-1.5 border-t border-sand-100"><input type="checkbox" ${c.done ? 'checked' : ''} data-act="toggleCheck" data-id="${c.id}"><span class="flex-1 text-sm ${c.done ? 'line-through text-navy-600' : ''}">${esc(c.text)}</span>${u}<button class="text-xs underline text-navy-600" data-act="editCheck" data-id="${c.id}">Edit</button></div>`;
+    }).join('')}</div>`).join('') || '<div class="card p-6 text-center text-navy-600">Nothing on the checklist yet.</div>');
+}
+function checkModal(t, id) {
+  const c = id ? t.checklist.find(x => x.id === id) : { text: '', group: 'General', due: '', done: false };
+  const groups = [...new Set(t.checklist.map(x => x.group || 'General'))];
+  openModal(`<h2 class="font-serif text-xl font-bold">${id ? 'Edit item' : 'Add checklist item'}</h2><form>
+    ${field('To do', 'text', c.text, 'text', 'required')}${field('Group', 'group', c.group || 'General', 'text', 'list="grpList"')}<datalist id="grpList">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+    ${field('Due date (optional)', 'due', c.due || '', 'date')}${modalFoot(id ? '<button type="button" class="btn btn-danger" id="delChk">Delete</button>' : '')}</form>`, fd => {
+    Object.assign(c, { text: fd.get('text').trim(), group: fd.get('group').trim() || 'General', due: fd.get('due') });
+    if (!id) { c.id = uid(); t.checklist.push(c); }
+    commit();
+  });
+  const del = $('#delChk'); if (del) del.onclick = () => { t.checklist = t.checklist.filter(x => x.id !== id); closeModal(); commit(); };
+}
+
+/* v1 -> v2: booking details, stop end times and links, checklist. Runs once per data set. */
+function migrate(d) {
+  d.trips.forEach(t => { t.checklist = t.checklist || []; });
+  if ((d.version || 1) >= 2) return d;
+  d.trips.forEach(t => {
+    t.bookings.forEach(b => {
+      b.category = b.category || (/flight|SIA/i.test(b.title) ? 'flight' : /adina|quest|resort|hotel|stay/i.test(b.title) ? 'stay' : /car rental/i.test(b.title) ? 'car' : /zoo|ferry|bus|cave|tour|ticket/i.test(b.title) ? 'attraction' : 'other');
+      if (b.bookedVia == null) b.bookedVia = (b.title.match(/\((Trip\.com|Klook|Agoda|Booking\.com)\)/i) || [])[1] || '';
+      if (b.category === 'flight' && !b.carrier && /SIA/i.test(b.title)) b.carrier = 'Singapore Airlines';
+      if (b.pax === undefined) b.pax = /Marvin \+ Cobae/.test(b.title) ? 2 : (b.category === 'flight' && /Caroline/.test(b.title)) ? 1 : null;
+      b.carrier = b.carrier || ''; b.seats = b.seats || '';
+    });
+    t.days.forEach(day => day.stops.forEach(s => { s.endTime = s.endTime || ''; s.bookingIds = s.bookingIds || []; }));
+    if (t.id === 'perth-2026') {
+      const find = re => t.bookings.filter(b => re.test(b.title)).map(b => b.id);
+      const rules = [
+        [/SQ213|SQ226/, () => find(/SIA flight/i)], [/rental car/i, () => find(/Car rental/i)], [/Perth Zoo/i, () => find(/Perth Zoo/i)],
+        [/Rottnest/i, () => find(/Rottnest/i)], [/Jewel Cave/i, () => find(/Jewel Cave/i)], [/Quest/i, () => find(/^Quest/i)],
+        [/Margaret River Resort/i, () => find(/Margaret River Resort/i)], [/Adina/i, di => find(di < 3 ? /Adina.*2–5/ : /Adina.*7–8/)]
+      ];
+      t.days.forEach((day, di) => day.stops.forEach(s => { if (!s.bookingIds.length) for (const [re, fn] of rules) if (re.test(s.title)) { s.bookingIds = fn(di); break; } }));
+      if (!t.checklist.length) t.checklist = [
+        ['Flights', 'Flight pre check-in: SQ213 (2 Nov outbound)'], ['Flights', 'Flight pre check-in: SQ226 (8 Nov return)'],
+        ['Documents', 'Australia ETA / visa application'], ['Money', 'Currency exchanged (AUD)'],
+        ['Bookings', 'Pay Rottnest ferry (Klook)'], ['Bookings', 'Pay Jewel Cave (Klook)'], ['Bookings', 'Confirm Quest 4–5 Nov vs Adina 2–5 Nov overlap'],
+        ['Trip', 'Check toddler-friendly wineries near Leeuwin Estate']
+      ].map(([group, text]) => ({ id: uid(), text, group, done: false, due: '' }));
+    }
+  });
+  d.version = 2; return d;
+}
+
 /* ===== Actions ===== */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
@@ -318,6 +394,9 @@ document.addEventListener('click', e => {
   if (a === 'editStop') return stopModal(t, +el.dataset.day, el.dataset.id);
   if (a === 'addBooking') return bookingModal(t, null);
   if (a === 'editBooking') return bookingModal(t, el.dataset.id);
+  if (a === 'addCheck') return checkModal(t, null);
+  if (a === 'editCheck') return checkModal(t, el.dataset.id);
+  if (a === 'toggleCheck') { const c = t.checklist.find(x => x.id === el.dataset.id); c.done = el.checked; return commit(); }
   if (a === 'toggleBooked') { const b = t.bookings.find(x => x.id === el.dataset.id); b.booked = el.checked; return commit(); }
 });
 
@@ -336,8 +415,8 @@ function newTripModal() {
     const sk = D.trips.find(x => x.id === fd.get('skeleton'));
     const nt = { id: uid(), name: fd.get('name').trim(), destination: fd.get('destination').trim(), start, end, status: 'planning',
       tags: sk ? [...sk.tags] : [], budgetTier: sk ? sk.budgetTier : '$$', travellers: fd.get('travellers').split(',').map(s => s.trim()).filter(Boolean), notes: sk ? `Built from skeleton: ${sk.name}` : '', lockedAt: null,
-      days: Array.from({ length: n }, (_, i) => ({ date: addDays(start, i), stops: [] })), bookings: [] };
-    if (sk) sk.days.forEach((d, i) => d.stops.filter(s => s.rating >= 4).forEach(s => nt.days[Math.min(i, n - 1)].stops.push({ ...s, id: uid(), rating: 0, actualNotes: '', cost: s.cost, notes: s.notes })));
+      days: Array.from({ length: n }, (_, i) => ({ date: addDays(start, i), stops: [] })), bookings: [], checklist: sk ? sk.checklist.map(c => ({ ...c, id: uid(), done: false, due: '' })) : [] };
+    if (sk) sk.days.forEach((d, i) => d.stops.filter(s => s.rating >= 4).forEach(s => nt.days[Math.min(i, n - 1)].stops.push({ ...s, id: uid(), rating: 0, actualNotes: '', cost: s.cost, notes: s.notes, bookingIds: [] })));
     D.trips.push(nt); view = { page: 'trip', tripId: nt.id, tab: 'itinerary' }; commit();
   });
 }
@@ -358,19 +437,20 @@ function editTripModal(t) {
 
 function stopModal(t, di, id) {
   const locked = t.status === 'locked';
-  const s = id ? t.days[di].stops.find(x => x.id === id) : { type: 'activity', time: '', title: '', notes: '', cost: null, link: '', rating: 0, actualNotes: '' };
+  const s = id ? t.days[di].stops.find(x => x.id === id) : { type: 'activity', time: '', endTime: '', title: '', notes: '', cost: null, link: '', rating: 0, actualNotes: '', bookingIds: [] };
   let rating = s.rating || 0;
   const ro = locked ? 'disabled' : '';
   openModal(`<h2 class="font-serif text-xl font-bold">${locked ? 'Rate: ' + esc(s.title) : id ? 'Edit stop' : 'Add stop'} <span class="text-sm font-sans text-navy-600">Day ${di + 1}</span></h2><form>
     <label class="lbl">Type</label><select class="inp" name="type" ${ro}>${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${k === s.type ? 'selected' : ''}>${v[0]} ${v[1]}</option>`).join('')}</select>
     ${field('Title', 'title', s.title, 'text', 'required ' + ro)}
-    <div class="grid grid-cols-2 gap-3"><div>${field('Time', 'time', s.time, 'time', ro)}</div><div>${field('Cost', 'cost', s.cost ?? '', 'number', 'step="0.01" ' + ro)}</div></div>
+    <div class="grid grid-cols-3 gap-3"><div>${field('Starts', 'time', s.time, 'time', ro)}</div><div>${field('Ends', 'endTime', s.endTime || '', 'time', ro)}</div><div>${field('Cost', 'cost', s.cost ?? '', 'number', 'step="0.01" ' + ro)}</div></div>
     ${field('Link', 'link', s.link, 'url', ro)}
+    <label class="lbl">Linked bookings</label><div class="border border-sand-200 rounded-lg p-2 max-h-32 overflow-y-auto bg-sand-50">${t.bookings.length ? t.bookings.map(bk => `<label class="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" name="bk" value="${bk.id}" ${(s.bookingIds || []).includes(bk.id) ? 'checked' : ''} ${ro}> ${CATS[bk.category || 'other'][0]} ${esc(bk.title)}</label>`).join('') : '<span class="text-xs text-navy-600">No bookings yet.</span>'}</div>
     <label class="lbl">Notes</label><textarea class="inp" name="notes" rows="2" ${ro}>${esc(s.notes)}</textarea>
     <label class="lbl">Rating</label><div id="starBox">${stars(rating, true)}</div>
     <label class="lbl">Actuals notes</label><textarea class="inp" name="actualNotes" rows="2">${esc(s.actualNotes)}</textarea>
     ${modalFoot(id && !locked ? '<button type="button" class="btn btn-danger" id="delStop">Delete</button>' : '')}</form>`, fd => {
-    if (!locked) { s.type = fd.get('type'); s.title = fd.get('title').trim(); s.time = fd.get('time'); s.cost = num(fd.get('cost')); s.link = fd.get('link').trim(); s.notes = fd.get('notes'); }
+    if (!locked) { s.type = fd.get('type'); s.title = fd.get('title').trim(); s.time = fd.get('time'); s.endTime = fd.get('endTime'); s.bookingIds = fd.getAll('bk'); s.cost = num(fd.get('cost')); s.link = fd.get('link').trim(); s.notes = fd.get('notes'); }
     s.rating = rating; s.actualNotes = fd.get('actualNotes');
     if (!id) { s.id = uid(); t.days[di].stops.push(s); }
     commit();
@@ -380,17 +460,21 @@ function stopModal(t, di, id) {
 }
 
 function bookingModal(t, id) {
-  const b = id ? t.bookings.find(x => x.id === id) : { title: '', confirmation: '', cost: null, deadline: '', booked: false, notes: '' };
+  const b = id ? t.bookings.find(x => x.id === id) : { category: 'other', title: '', confirmation: '', bookedVia: '', carrier: '', seats: '', pax: null, cost: null, deadline: '', booked: false, notes: '' };
   openModal(`<h2 class="font-serif text-xl font-bold">${id ? 'Edit booking' : 'Add booking'}</h2><form>
-    ${field('What', 'title', b.title, 'text', 'required')}${field('Confirmation number', 'confirmation', b.confirmation)}
-    <div class="grid grid-cols-2 gap-3"><div>${field('Cost', 'cost', b.cost ?? '', 'number', 'step="0.01"')}</div><div>${field('Deadline', 'deadline', b.deadline, 'date')}</div></div>
+    <label class="lbl">Category</label><select class="inp" name="category" id="catSel">${Object.entries(CATS).map(([k, v]) => `<option value="${k}" ${k === (b.category || 'other') ? 'selected' : ''}>${v[0]} ${v[1]}</option>`).join('')}</select>
+    ${field('What', 'title', b.title, 'text', 'required')}${field('Booking reference', 'confirmation', b.confirmation)}
+    ${field('Booked via (Direct, Trip.com, Agoda, Klook…)', 'bookedVia', b.bookedVia || '', 'text', 'list="viaList"')}<datalist id="viaList">${VIAS.map(v => `<option value="${v}">`).join('')}</datalist>
+    <div id="flightFields" class="${b.category === 'flight' ? '' : 'hidden'}">${field('Carrier', 'carrier', b.carrier || '')}${field('Seats', 'seats', b.seats || '', 'text', 'placeholder="e.g. Out 32A/32B · Back 41C"')}</div>
+    <div class="grid grid-cols-3 gap-3"><div>${field('Cost', 'cost', b.cost ?? '', 'number', 'step="0.01"')}</div><div>${field('Pax covered', 'pax', b.pax ?? '', 'number', 'min="1" step="1"')}</div><div>${field('Deadline', 'deadline', b.deadline, 'date')}</div></div>
     ${field('Notes', 'notes', b.notes)}
     <label class="flex items-center gap-2 mt-3 text-sm"><input type="checkbox" name="booked" ${b.booked ? 'checked' : ''}> Booked / paid</label>
     ${modalFoot(id ? '<button type="button" class="btn btn-danger" id="delBk">Delete</button>' : '')}</form>`, fd => {
-    Object.assign(b, { title: fd.get('title').trim(), confirmation: fd.get('confirmation').trim(), cost: num(fd.get('cost')), deadline: fd.get('deadline'), notes: fd.get('notes'), booked: fd.get('booked') === 'on' });
+    Object.assign(b, { category: fd.get('category'), bookedVia: fd.get('bookedVia').trim(), carrier: fd.get('carrier').trim(), seats: fd.get('seats').trim(), pax: num(fd.get('pax')), title: fd.get('title').trim(), confirmation: fd.get('confirmation').trim(), cost: num(fd.get('cost')), deadline: fd.get('deadline'), notes: fd.get('notes'), booked: fd.get('booked') === 'on' });
     if (!id) { b.id = uid(); t.bookings.push(b); }
     commit();
   });
+  $('#catSel').onchange = e => $('#flightFields').classList.toggle('hidden', e.target.value !== 'flight');
   const del = $('#delBk'); if (del) del.onclick = () => { t.bookings = t.bookings.filter(x => x.id !== id); closeModal(); commit(); };
 }
 
