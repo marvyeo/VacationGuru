@@ -318,7 +318,7 @@ function bookingsTab(t, locked) {
     return `<div class="card p-3 flex items-start gap-3">
       <input type="checkbox" class="mt-1.5" ${b.booked ? 'checked' : ''} ${locked ? 'disabled' : ''} data-act="toggleBooked" data-id="${b.id}">
       <div class="flex-1 min-w-0"><div class="flex flex-wrap items-center gap-2"><span class="font-medium ${b.booked ? '' : 'text-red-800'}">${CATS[b.category || 'other'][0]} ${esc(b.title)}</span>${u}${b.booked ? '<span class="badge bg-emerald-100 text-emerald-800">Booked</span>' : '<span class="badge bg-red-100 text-red-800">Not booked</span>'}</div>
-      <div class="text-xs text-navy-600">${bookingMeta(b)}</div></div>
+      <div class="text-xs text-navy-600">${bookingMeta(b)}</div>${usedBy(t, b)}</div>
       <div class="text-sm font-medium whitespace-nowrap">${b.cost != null ? money(b.cost) : '<span class="text-navy-600 text-xs">no amount</span>'}</div>
       ${locked ? '' : `<button class="text-xs underline text-navy-600" data-act="editBooking" data-id="${b.id}">Edit</button>`}</div>`;
   }).join('') : '<div class="card p-6 text-center text-navy-600">No bookings yet.</div>'}</div>`;
@@ -335,6 +335,11 @@ function summaryTab(t) {
   return `<div class="grid grid-cols-2 gap-3 mb-4">
     ${[['Bookings total', money(bTotal) || '$0'], ['On-the-day spend', money(sTotal) || '$0'], ['Grand total', money(bTotal + sTotal) || '$0'], ['Avg rating', avg]].map(([l, v]) => `<div class="card p-4"><div class="text-xs uppercase tracking-wider text-sand-600">${l}</div><div class="font-serif text-2xl font-bold">${v}</div></div>`).join('')}</div>
     ${missing ? `<p class="text-sm text-amber-800 mb-3">⚠ ${missing} booking${missing > 1 ? 's have' : ' has'} no amount recorded, so totals are incomplete.</p>` : ''}
+    <div class="card p-4 mb-4"><div class="text-xs uppercase tracking-wider text-sand-600 mb-2">Progress</div>${(() => {
+      const ck = t.checklist || [], food = t.days.flatMap(d => d.stops).filter(s => s.type === 'dining');
+      return [['Bookings booked', t.bookings.filter(b => b.booked).length, t.bookings.length], ['Checklist done', ck.filter(c => c.done).length, ck.length], ['Food places with a menu', food.filter(s => (s.menuImages || []).length).length, food.length]]
+        .map(([l, a, n]) => `<div class="flex justify-between text-sm"><span>${l}</span><span>${a} / ${n}</span></div>`).join('');
+    })()}</div>
     <div class="card p-4"><div class="text-xs uppercase tracking-wider text-sand-600 mb-2">Stops by type</div>${Object.entries(byType).map(([k, v]) => `<div class="flex justify-between text-sm"><span>${TYPES[k][0]} ${TYPES[k][1]}</span><span>${v}</span></div>`).join('') || '<span class="text-sm text-navy-600">None</span>'}</div>
     <p class="text-xs text-navy-600 mt-3">Tags: ${t.tags.map(esc).join(', ') || '—'} · Budget tier ${t.budgetTier}${locked.length ? '' : ''}</p>
     ${t.notes ? `<p class="text-sm mt-3">${esc(t.notes)}</p>` : ''}`;
@@ -353,7 +358,24 @@ function bookingMeta(b) {
 }
 function linkedLines(t, s) {
   return (s.bookingIds || []).map(id => t.bookings.find(b => b.id === id)).filter(Boolean)
-    .map(b => `<div class="text-xs text-sand-600">🔗 ${esc(b.title)}${b.cost != null ? ' · ' + money(b.cost) : ''}${bookingMeta(b) ? ' · ' + bookingMeta(b) : ''}</div>`).join('');
+    .map(b => `<div class="text-xs text-sand-600">🔗 ${esc(b.title)}${b.cost != null ? ' · ' + money(b.cost) : ''}${bookingMeta(b) ? ' · ' + bookingMeta(b) : ''}${b.booked ? '' : ' · <span class="text-red-700 font-medium">⚠ not booked yet</span>'}</div>`).join('');
+}
+/* Cross-tab links: stops ↔ bookings (stop.bookingIds) and checklist ↔ bookings (item.bookingId). One flag, shown everywhere. */
+function setBooked(t, b, v) { b.booked = v; (t.checklist || []).forEach(c => { if (c.bookingId === b.id) c.done = v; }); }
+function setCheck(t, c, v) {
+  c.done = v;
+  const b = c.bookingId && t.bookings.find(x => x.id === c.bookingId);
+  if (b && t.status !== 'locked') setBooked(t, b, v);   // a locked trip's bookings stay read-only
+}
+function checkLink(t, c) {
+  const b = c.bookingId && t.bookings.find(x => x.id === c.bookingId); if (!b) return '';
+  return ` <span class="text-xs text-sand-600">🔗 ${esc(b.title)}</span>` + (!!c.done !== !!b.booked ? ` <span class="badge bg-amber-100 text-amber-800">Booking is marked ${b.booked ? 'paid' : 'not paid'}</span>` : '');
+}
+function usedBy(t, b) {
+  const uses = t.days.flatMap((d, i) => d.stops.filter(s => (s.bookingIds || []).includes(b.id)).map(s => `Day ${i + 1} ${s.title}`));
+  const chk = (t.checklist || []).filter(c => c.bookingId === b.id).map(c => `Checklist: ${c.text}`);
+  const all = [...uses.slice(0, 3), ...(uses.length > 3 ? ['+' + (uses.length - 3) + ' more stops'] : []), ...chk];
+  return all.length ? `<div class="text-xs text-sand-600">Used in: ${all.map(esc).join(' · ')}</div>` : '';
 }
 
 function checklistTab(t) {
@@ -363,16 +385,18 @@ function checklistTab(t) {
     + (groups.map(g => `<div class="card p-3 mb-3"><div class="text-xs uppercase tracking-wider text-sand-600 mb-1">${esc(g)}</div>${items.filter(c => (c.group || 'General') === g).map(c => {
       let u = '';
       if (!c.done && c.due) { const n = dayDiff(today, c.due); u = n < 0 ? `<span class="badge bg-red-100 text-red-800">Overdue ${-n}d</span>` : n <= 7 ? `<span class="badge bg-amber-100 text-amber-800">Due in ${n}d</span>` : `<span class="badge bg-sand-100 text-sand-600">Due ${fmtShort(c.due)}</span>`; }
-      return `<div class="flex items-center gap-3 py-1.5 border-t border-sand-100"><input type="checkbox" ${c.done ? 'checked' : ''} data-act="toggleCheck" data-id="${c.id}"><span class="flex-1 text-sm ${c.done ? 'line-through text-navy-600' : ''}">${esc(c.text)}</span>${u}<button class="text-xs underline text-navy-600" data-act="editCheck" data-id="${c.id}">Edit</button></div>`;
+      return `<div class="flex items-center gap-3 py-1.5 border-t border-sand-100"><input type="checkbox" ${c.done ? 'checked' : ''} data-act="toggleCheck" data-id="${c.id}"><span class="flex-1 text-sm ${c.done ? 'line-through text-navy-600' : ''}">${esc(c.text)}${checkLink(t, c)}</span>${u}<button class="text-xs underline text-navy-600" data-act="editCheck" data-id="${c.id}">Edit</button></div>`;
     }).join('')}</div>`).join('') || '<div class="card p-6 text-center text-navy-600">Nothing on the checklist yet.</div>');
 }
 function checkModal(t, id) {
-  const c = id ? t.checklist.find(x => x.id === id) : { text: '', group: 'General', due: '', done: false };
+  const c = id ? t.checklist.find(x => x.id === id) : { text: '', group: 'General', due: '', done: false, bookingId: '' };
   const groups = [...new Set(t.checklist.map(x => x.group || 'General'))];
   openModal(`<h2 class="font-serif text-xl font-bold">${id ? 'Edit item' : 'Add checklist item'}</h2><form>
     ${field('To do', 'text', c.text, 'text', 'required')}${field('Group', 'group', c.group || 'General', 'text', 'list="grpList"')}<datalist id="grpList">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
-    ${field('Due date (optional)', 'due', c.due || '', 'date')}${modalFoot(id ? '<button type="button" class="btn btn-danger" id="delChk">Delete</button>' : '')}</form>`, fd => {
-    Object.assign(c, { text: fd.get('text').trim(), group: fd.get('group').trim() || 'General', due: fd.get('due') });
+    ${field('Due date (optional)', 'due', c.due || '', 'date')}
+    <label class="lbl">Linked booking (optional)</label><select class="inp" name="bookingId"><option value="">None</option>${t.bookings.map(b => `<option value="${b.id}" ${b.id === c.bookingId ? 'selected' : ''}>${esc(b.title)}</option>`).join('')}</select>
+    <p class="text-xs text-navy-600 mt-1">Ticking this item marks the booking booked/paid, and the other way round.</p>${modalFoot(id ? '<button type="button" class="btn btn-danger" id="delChk">Delete</button>' : '')}</form>`, fd => {
+    Object.assign(c, { text: fd.get('text').trim(), group: fd.get('group').trim() || 'General', due: fd.get('due'), bookingId: fd.get('bookingId') || '' });
     if (!id) { c.id = uid(); t.checklist.push(c); }
     commit();
   });
@@ -382,7 +406,7 @@ function checkModal(t, id) {
 /* v1 -> v2: booking details, stop end times and links, checklist. Runs once per data set. */
 function migrate(d) {
   d.trips.forEach(t => { t.checklist = t.checklist || []; });
-  if ((d.version || 1) >= 2) return d;
+  if ((d.version || 1) >= 2) return migrate3(d);
   d.trips.forEach(t => {
     t.bookings.forEach(b => {
       b.category = b.category || (/flight|SIA/i.test(b.title) ? 'flight' : /adina|quest|resort|hotel|stay/i.test(b.title) ? 'stay' : /car rental/i.test(b.title) ? 'car' : /zoo|ferry|bus|cave|tour|ticket/i.test(b.title) ? 'attraction' : 'other');
@@ -408,7 +432,18 @@ function migrate(d) {
       ].map(([group, text]) => ({ id: uid(), text, group, done: false, due: '' }));
     }
   });
-  d.version = 2; return d;
+  d.version = 2; return migrate3(d);
+}
+/* v2 -> v3: checklist items named "Pay X" link to the booking whose title contains X. Link only: neither flag is changed, and a mismatch shows as a badge. */
+function migrate3(d) {
+  if ((d.version || 1) >= 3) return d;
+  d.trips.forEach(t => (t.checklist || []).forEach(c => {
+    if (c.bookingId !== undefined) return;
+    c.bookingId = '';
+    const m = /^pay\s+(.+?)(\s*\(.*\))?$/i.exec(c.text || '');
+    if (m) { const b = t.bookings.find(x => x.title.toLowerCase().includes(m[1].toLowerCase())); if (b) c.bookingId = b.id; }
+  }));
+  d.version = 3; return d;
 }
 
 /* ===== Timeline helpers + import ===== */
@@ -427,11 +462,12 @@ const IMPORT_PROMPT = `Design my trip, then give me ONE JSON code block I can im
 {"format":"vacationguru-trip","version":1,"name":"","destination":"","start":"","end":"","tags":[],"budgetTier":"$$","travellers":[],"notes":"",
 "days":[{"date":"","title":"short day theme","stops":[{"type":"transport|dining|activity|accommodation|shopping|rest|booking","start":"07:20","end":"12:35","title":"","notes":"","link":"","bookings":["words that appear in a booking title"]}]}],
 "bookings":[{"category":"flight|stay|car|attraction|other","title":"","bookedVia":"","reference":"","carrier":"","seats":"","pax":null,"cost":null,"deadline":"","booked":false,"notes":""}],
-"checklist":[{"group":"","text":"","due":""}]}
+"checklist":[{"group":"","text":"","due":"","booking":"optional: words from a booking title this item is about"}]}
 Rules: every day has its stops in time order. Give "end" only when it is known (flights, tours); otherwise leave it out and the app works it out from the next stop. Meals are type "dining" with the venue name in the title. In bookings, cost is only the prepaid amount.`;
 
 function resolveLinks(t, books) {
   let miss = 0;
+  (t.checklist || []).forEach(c => { const l = c._link; delete c._link; if (l) { const b = books.find(x => x.title.toLowerCase().includes(l.toLowerCase())); if (b) c.bookingId = b.id; else miss++; } });
   t.days.forEach(d => d.stops.forEach(s => {
     const links = s._links || []; delete s._links;
     s.bookingIds = books.filter(b => links.some(l => b.title.toLowerCase().includes(String(l).toLowerCase()))).map(b => b.id);
@@ -461,7 +497,7 @@ function normalizeTrip(j) {
     bookedVia: b.bookedVia || '', carrier: b.carrier || '', seats: b.seats || '', pax: num(b.pax), cost: num(b.cost),
     deadline: ok(b.deadline) ? b.deadline : '', booked: b.booked === true, notes: b.notes ? String(b.notes) : '' }));
   const checklist = (j.checklist || []).map(c => typeof c === 'string' ? { text: c } : c).filter(c => c && c.text)
-    .map(c => ({ id: uid(), text: String(c.text), group: c.group || 'General', due: ok(c.due) ? c.due : '', done: c.done === true }));
+    .map(c => ({ id: uid(), text: String(c.text), group: c.group || 'General', due: ok(c.due) ? c.due : '', done: c.done === true, bookingId: '', _link: c.booking ? String(c.booking) : '' }));
   return { id: j.id && /^[\w-]+$/.test(j.id) ? j.id : uid(), name: String(j.name).trim(), destination: j.destination ? String(j.destination) : '',
     start: j.start, end: j.end, status: 'planning', tags: arr(j.tags), budgetTier: ['$', '$$', '$$$'].includes(j.budgetTier) ? j.budgetTier : '$$',
     travellers: arr(j.travellers), notes: j.notes ? String(j.notes) : '', lockedAt: null, days, bookings, checklist };
@@ -628,8 +664,8 @@ document.addEventListener('click', e => {
   if (a === 'editBooking') return bookingModal(t, el.dataset.id);
   if (a === 'addCheck') return checkModal(t, null);
   if (a === 'editCheck') return checkModal(t, el.dataset.id);
-  if (a === 'toggleCheck') { const c = t.checklist.find(x => x.id === el.dataset.id); c.done = el.checked; return commit(); }
-  if (a === 'toggleBooked') { const b = t.bookings.find(x => x.id === el.dataset.id); b.booked = el.checked; return commit(); }
+  if (a === 'toggleCheck') { const c = t.checklist.find(x => x.id === el.dataset.id); setCheck(t, c, el.checked); return commit(); }
+  if (a === 'toggleBooked') { const b = t.bookings.find(x => x.id === el.dataset.id); setBooked(t, b, el.checked); return commit(); }
 });
 
 function newTripModal() {
@@ -647,7 +683,7 @@ function newTripModal() {
     const sk = D.trips.find(x => x.id === fd.get('skeleton'));
     const nt = { id: uid(), name: fd.get('name').trim(), destination: fd.get('destination').trim(), start, end, status: 'planning',
       tags: sk ? [...sk.tags] : [], budgetTier: sk ? sk.budgetTier : '$$', travellers: fd.get('travellers').split(',').map(s => s.trim()).filter(Boolean), notes: sk ? `Built from skeleton: ${sk.name}` : '', lockedAt: null,
-      days: Array.from({ length: n }, (_, i) => ({ date: addDays(start, i), stops: [] })), bookings: [], checklist: sk ? sk.checklist.map(c => ({ ...c, id: uid(), done: false, due: '' })) : [] };
+      days: Array.from({ length: n }, (_, i) => ({ date: addDays(start, i), stops: [] })), bookings: [], checklist: sk ? sk.checklist.map(c => ({ ...c, id: uid(), done: false, due: '', bookingId: '' })) : [] };
     if (sk) sk.days.forEach((d, i) => d.stops.filter(s => s.rating >= 4).forEach(s => nt.days[Math.min(i, n - 1)].stops.push({ ...s, id: uid(), rating: 0, actualNotes: '', cost: s.cost, notes: s.notes, bookingIds: [], menuImages: [] })));
     D.trips.push(nt); view = { page: 'trip', tripId: nt.id, tab: 'itinerary' }; commit();
   });
@@ -706,11 +742,16 @@ function bookingModal(t, id) {
     <label class="flex items-center gap-2 mt-3 text-sm"><input type="checkbox" name="booked" ${b.booked ? 'checked' : ''}> Booked / paid</label>
     ${modalFoot(id ? '<button type="button" class="btn btn-danger" id="delBk">Delete</button>' : '')}</form>`, fd => {
     Object.assign(b, { category: fd.get('category'), bookedVia: fd.get('bookedVia').trim(), carrier: fd.get('carrier').trim(), seats: fd.get('seats').trim(), pax: num(fd.get('pax')), title: fd.get('title').trim(), confirmation: fd.get('confirmation').trim(), cost: num(fd.get('cost')), deadline: fd.get('deadline'), notes: fd.get('notes'), booked: fd.get('booked') === 'on' });
-    if (!id) { b.id = uid(); t.bookings.push(b); }
+    if (!id) { b.id = uid(); t.bookings.push(b); } else setBooked(t, b, b.booked);
     commit();
   });
   $('#catSel').onchange = e => $('#flightFields').classList.toggle('hidden', e.target.value !== 'flight');
-  const del = $('#delBk'); if (del) del.onclick = () => { t.bookings = t.bookings.filter(x => x.id !== id); closeModal(); commit(); };
+  const del = $('#delBk'); if (del) del.onclick = () => {
+    t.bookings = t.bookings.filter(x => x.id !== id);
+    t.days.forEach(d => d.stops.forEach(s => { s.bookingIds = (s.bookingIds || []).filter(x => x !== id); }));   // no dangling links
+    (t.checklist || []).forEach(c => { if (c.bookingId === id) c.bookingId = ''; });
+    closeModal(); commit();
+  };
 }
 
 function ratingsModal(t) {
