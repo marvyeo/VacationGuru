@@ -47,7 +47,7 @@ const CLIENT_ID = '669494100250-gvromuq72r7j0djmkd4vdbdq5damncj7.apps.googleuser
 const SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const FILE_NAME = 'vacationguru-data.json';
 const LS_KEY = 'vacationguru-data-v1';
-const TYPES = { accommodation: ['🛏️', 'Stay'], dining: ['🍽️', 'Dining'], activity: ['🎟️', 'Activity'], transport: ['✈️', 'Transport'], booking: ['📌', 'Booking'] };
+const TYPES = { accommodation: ['🛏️', 'Stay'], dining: ['🍽️', 'Dining'], activity: ['🎟️', 'Activity'], transport: ['✈️', 'Transport'], booking: ['📌', 'Booking'], shopping: ['🛍️', 'Shopping'], rest: ['😴', 'Rest'] };
 const STATUS = { planning: ['Planning', 'bg-sand-200 text-navy-800'], active: ['Active', 'bg-emerald-100 text-emerald-800'], locked: ['Locked', 'bg-navy-800 text-sand-100'] };
 
 const CATS = { flight: ['✈️', 'Flight'], stay: ['🛏️', 'Stay'], car: ['🚗', 'Car rental'], attraction: ['🎟️', 'Activity'], other: ['📌', 'Other'] };
@@ -225,7 +225,7 @@ function listView() {
   const up = D.upcoming.slice(0, 4);
   return `
   <div class="flex items-end justify-between mb-5"><div><h1 class="font-serif text-3xl font-bold">Your trips</h1><p class="text-sm text-navy-600">Planning → Active → Locked</p></div>
-  <button class="btn btn-primary" data-act="newTrip">+ New trip</button></div>
+  <div class="flex gap-2"><button class="btn btn-sand" data-act="importTrip">Import</button><button class="btn btn-primary" data-act="newTrip">+ New trip</button></div></div>
   ${up.length ? `<div class="card p-4 mb-5 bg-sand-100"><div class="text-xs uppercase tracking-wider text-sand-600 mb-2">Coming up</div>${up.map(u => `<div class="flex justify-between text-sm py-0.5"><span>${u.type === 'trip' ? '✈️' : '⏰'} ${esc(u.title)}</span><span class="${u.priority === 'high' ? 'text-red-700 font-semibold' : 'text-navy-600'}">${fmtShort(u.date)}</span></div>`).join('')}</div>` : ''}
   <div class="grid gap-3">${trips.length ? trips.map(t => {
     const total = tripTotal(t);
@@ -263,14 +263,25 @@ function itineraryTab(t, locked) {
   return t.days.map((d, i) => {
     const stops = [...d.stops].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
     return `<div class="card p-4 mb-3">
-      <div class="flex justify-between items-center mb-2"><div class="font-serif text-lg font-bold">Day ${i + 1} <span class="font-sans text-sm font-normal text-navy-600">· ${fmtDate(d.date)}</span></div>
+      <div class="flex justify-between items-center mb-2"><div class="font-serif text-lg font-bold">Day ${i + 1} <span class="font-sans text-sm font-normal text-navy-600">· ${fmtDate(d.date)}${d.title ? ' · ' + esc(d.title) : ''}</span></div>
       ${locked ? '' : `<button class="btn btn-sand" data-act="addStop" data-day="${i}">+ Stop</button>`}</div>
-      ${stops.length ? stops.map(s => `<div class="flex gap-3 py-2 border-t border-sand-100 ${locked ? 'ro' : ''}">
-        <div class="text-xl leading-none pt-0.5">${TYPES[s.type][0]}</div>
-        <div class="flex-1 min-w-0"><div class="flex flex-wrap items-baseline gap-x-2"><span class="font-medium">${esc(s.title)}</span><span class="text-xs text-navy-600">${s.time ? esc(s.time) + (s.endTime ? '–' + esc(s.endTime) : '') : (s.endTime ? 'until ' + esc(s.endTime) : '')}${s.cost ? ' · ' + money(s.cost) : ''}</span>${s.link ? `<a class="text-xs underline text-sand-600" target="_blank" rel="noopener" href="${esc(s.link)}">link</a>` : ''}</div>
-        ${s.notes ? `<div class="text-sm text-navy-600">${esc(s.notes)}</div>` : ''}${s.actualNotes ? `<div class="text-sm italic text-sand-600">Actual: ${esc(s.actualNotes)}</div>` : ''}
-        ${linkedLines(t, s)}${s.rating ? `<div>${stars(s.rating)}</div>` : ''}</div>
-        <button class="text-xs text-navy-600 underline self-start" data-act="editStop" data-day="${i}" data-id="${s.id}">${locked ? 'Rate' : 'Edit'}</button></div>`).join('') : '<div class="text-sm text-navy-600 py-1">Nothing planned yet.</div>'}
+      ${stops.length ? stops.map((s, k) => {
+        const sp = stopSpan(stops, k);
+        const pre = (s.bookingIds || []).map(id => t.bookings.find(b => b.id === id)).filter(b => b && b.cost);
+        const prompt = !locked && pre.length && s.cost == null ? `<button class="badge bg-amber-100 text-amber-800 mt-1" data-act="editStop" data-day="${i}" data-id="${s.id}">＋ Add on-the-day spend (booked ${money(pre.reduce((x, b) => x + Number(b.cost), 0))})</button>` : '';
+        return `<div class="grid grid-cols-[5.5rem_1fr] gap-3 py-2 border-t border-sand-100 ${locked ? 'ro' : ''}">
+          <div class="text-right leading-tight">
+            ${s.time ? `<div class="font-semibold text-sm">${esc(s.time)}</div>` : '<div class="text-xs text-navy-600">no time</div>'}
+            ${sp ? `<div class="text-xs ${sp.inferred ? 'text-navy-600' : 'font-medium'}">${sp.inferred ? '~' : '→ '}${esc(sp.end)}</div>${sp.dur ? `<div class="mt-0.5"><span class="badge bg-sand-100 text-sand-600">${sp.inferred ? '~' : ''}${sp.dur}</span></div>` : ''}` : ''}
+          </div>
+          <div class="flex gap-2 min-w-0">
+            <div class="text-lg leading-none pt-0.5">${(TYPES[s.type] || TYPES.activity)[0]}</div>
+            <div class="flex-1 min-w-0"><div class="flex flex-wrap items-baseline gap-x-2"><span class="font-medium">${esc(s.title)}</span>${s.cost ? `<span class="text-xs text-navy-600">· spend ${money(s.cost)}</span>` : ''}${s.link ? `<a class="text-xs underline text-sand-600" target="_blank" rel="noopener" href="${esc(s.link)}">link</a>` : ''}</div>
+            ${s.notes ? `<div class="text-sm text-navy-600">${esc(s.notes)}</div>` : ''}${s.actualNotes ? `<div class="text-sm italic text-sand-600">Actual: ${esc(s.actualNotes)}</div>` : ''}
+            ${linkedLines(t, s)}${prompt}${s.rating ? `<div>${stars(s.rating)}</div>` : ''}</div>
+            <button class="text-xs text-navy-600 underline self-start" data-act="editStop" data-day="${i}" data-id="${s.id}">${locked ? 'Rate' : 'Edit'}</button>
+          </div></div>`;
+      }).join('') : '<div class="text-sm text-navy-600 py-1">Nothing planned yet.</div>'}
     </div>`;
   }).join('');
 }
@@ -299,7 +310,7 @@ function summaryTab(t) {
   const byType = {}; t.days.forEach(d => d.stops.forEach(s => byType[s.type] = (byType[s.type] || 0) + 1));
   const locked = D.trips.filter(x => x.status === 'locked' && x.id !== t.id);
   return `<div class="grid grid-cols-2 gap-3 mb-4">
-    ${[['Bookings total', money(bTotal) || '$0'], ['Stop costs', money(sTotal) || '$0'], ['Grand total', money(bTotal + sTotal) || '$0'], ['Avg rating', avg]].map(([l, v]) => `<div class="card p-4"><div class="text-xs uppercase tracking-wider text-sand-600">${l}</div><div class="font-serif text-2xl font-bold">${v}</div></div>`).join('')}</div>
+    ${[['Bookings total', money(bTotal) || '$0'], ['On-the-day spend', money(sTotal) || '$0'], ['Grand total', money(bTotal + sTotal) || '$0'], ['Avg rating', avg]].map(([l, v]) => `<div class="card p-4"><div class="text-xs uppercase tracking-wider text-sand-600">${l}</div><div class="font-serif text-2xl font-bold">${v}</div></div>`).join('')}</div>
     ${missing ? `<p class="text-sm text-amber-800 mb-3">⚠ ${missing} booking${missing > 1 ? 's have' : ' has'} no amount recorded, so totals are incomplete.</p>` : ''}
     <div class="card p-4"><div class="text-xs uppercase tracking-wider text-sand-600 mb-2">Stops by type</div>${Object.entries(byType).map(([k, v]) => `<div class="flex justify-between text-sm"><span>${TYPES[k][0]} ${TYPES[k][1]}</span><span>${v}</span></div>`).join('') || '<span class="text-sm text-navy-600">None</span>'}</div>
     <p class="text-xs text-navy-600 mt-3">Tags: ${t.tags.map(esc).join(', ') || '—'} · Budget tier ${t.budgetTier}${locked.length ? '' : ''}</p>
@@ -377,11 +388,96 @@ function migrate(d) {
   d.version = 2; return d;
 }
 
+/* ===== Timeline helpers + import ===== */
+const toMin = v => { const [h, m] = v.split(':').map(Number); return h * 60 + m; };
+const fmtDur = m => { const h = Math.floor(m / 60), r = m % 60; return h ? h + 'h' + (r ? ' ' + r + 'm' : '') : r + 'm'; };
+function stopSpan(stops, i) {
+  const s = stops[i]; if (!s.time) return null;
+  let end = s.endTime, inferred = false;
+  if (!end) { const nx = stops.slice(i + 1).find(x => x.time); if (nx && toMin(nx.time) > toMin(s.time)) { end = nx.time; inferred = true; } }
+  if (!end) return null;
+  let m = toMin(end) - toMin(s.time); if (m < 0 && !inferred) m += 1440;
+  return { end, inferred, dur: m > 0 ? fmtDur(m) : '' };
+}
+
+const IMPORT_PROMPT = `Design my trip, then give me ONE JSON code block I can import into VacationGuru. Use exactly this shape (dates YYYY-MM-DD, 24-hour HH:MM times, local time at each place; leave out anything unknown):
+{"format":"vacationguru-trip","version":1,"name":"","destination":"","start":"","end":"","tags":[],"budgetTier":"$$","travellers":[],"notes":"",
+"days":[{"date":"","title":"short day theme","stops":[{"type":"transport|dining|activity|accommodation|shopping|rest|booking","start":"07:20","end":"12:35","title":"","notes":"","link":"","bookings":["words that appear in a booking title"]}]}],
+"bookings":[{"category":"flight|stay|car|attraction|other","title":"","bookedVia":"","reference":"","carrier":"","seats":"","pax":null,"cost":null,"deadline":"","booked":false,"notes":""}],
+"checklist":[{"group":"","text":"","due":""}]}
+Rules: every day has its stops in time order. Give "end" only when it is known (flights, tours); otherwise leave it out and the app works it out from the next stop. Meals are type "dining" with the venue name in the title. In bookings, cost is only the prepaid amount.`;
+
+function resolveLinks(t, books) {
+  let miss = 0;
+  t.days.forEach(d => d.stops.forEach(s => {
+    const links = s._links || []; delete s._links;
+    s.bookingIds = books.filter(b => links.some(l => b.title.toLowerCase().includes(String(l).toLowerCase()))).map(b => b.id);
+    miss += links.filter(l => !books.some(b => b.title.toLowerCase().includes(String(l).toLowerCase()))).length;
+  }));
+  return miss;
+}
+function normalizeTrip(j) {
+  if (!j || typeof j !== 'object' || !j.name) throw new Error('The trip needs a "name".');
+  const ok = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '');
+  if (!ok(j.start) || !ok(j.end)) throw new Error('The trip needs "start" and "end" dates as YYYY-MM-DD.');
+  if (j.end < j.start) throw new Error('"end" is before "start".');
+  const n = dayDiff(j.start, j.end) + 1; if (n > 60) throw new Error('Trips are capped at 60 days.');
+  const hhmm = v => /^([01]?\d|2[0-3]):[0-5]\d$/.test(v || '') ? v.padStart(5, '0') : '';
+  const arr = v => Array.isArray(v) ? v.map(String).filter(Boolean) : [];
+  const src = Array.isArray(j.days) ? j.days : [];
+  const days = Array.from({ length: n }, (_, i) => {
+    const date = addDays(j.start, i);
+    const d = src.find(x => x && x.date === date) || (src[i] && !src[i].date ? src[i] : {});
+    return { date, title: d.title ? String(d.title) : '', stops: (d.stops || []).filter(s => s && s.title).map(s => ({
+      id: uid(), type: TYPES[s.type] ? s.type : 'activity', time: hhmm(s.start || s.time), endTime: hhmm(s.end || s.endTime),
+      title: String(s.title).trim(), notes: s.notes ? String(s.notes) : '', cost: num(s.cost), link: s.link ? String(s.link) : '',
+      rating: 0, actualNotes: '', bookingIds: [], _links: [].concat(s.bookings || []) })) };
+  });
+  const bookings = (j.bookings || []).filter(b => b && b.title).map(b => ({
+    id: uid(), category: CATS[b.category] ? b.category : 'other', title: String(b.title), confirmation: b.reference || b.confirmation || '',
+    bookedVia: b.bookedVia || '', carrier: b.carrier || '', seats: b.seats || '', pax: num(b.pax), cost: num(b.cost),
+    deadline: ok(b.deadline) ? b.deadline : '', booked: b.booked === true, notes: b.notes ? String(b.notes) : '' }));
+  const checklist = (j.checklist || []).map(c => typeof c === 'string' ? { text: c } : c).filter(c => c && c.text)
+    .map(c => ({ id: uid(), text: String(c.text), group: c.group || 'General', due: ok(c.due) ? c.due : '', done: c.done === true }));
+  return { id: j.id && /^[\w-]+$/.test(j.id) ? j.id : uid(), name: String(j.name).trim(), destination: j.destination ? String(j.destination) : '',
+    start: j.start, end: j.end, status: 'planning', tags: arr(j.tags), budgetTier: ['$', '$$', '$$$'].includes(j.budgetTier) ? j.budgetTier : '$$',
+    travellers: arr(j.travellers), notes: j.notes ? String(j.notes) : '', lockedAt: null, days, bookings, checklist };
+}
+function importModal() {
+  openModal(`<h2 class="font-serif text-xl font-bold mb-1">Import a trip</h2>
+    <p class="text-sm text-navy-600 mb-2">Paste the JSON Claude gave you, or choose the .json file.</p>
+    <textarea id="impText" class="inp" rows="7" placeholder="Paste JSON here"></textarea>
+    <input id="impFile" type="file" accept=".json,application/json" class="mt-2 text-sm">
+    <p id="impErr" class="text-sm text-red-700 mt-2"></p>
+    <details class="mt-3 text-sm"><summary class="cursor-pointer text-sand-600">Prompt to give Claude when designing a trip</summary>
+      <pre class="text-xs whitespace-pre-wrap bg-sand-50 border border-sand-200 rounded-lg p-2 mt-2 max-h-40 overflow-y-auto">${esc(IMPORT_PROMPT)}</pre>
+      <button type="button" class="btn btn-sand mt-2" id="impCopy">Copy prompt</button></details>
+    <div class="flex justify-end gap-2 mt-4"><button class="btn btn-sand" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="impGo">Import</button></div>`);
+  $('#impFile').onchange = async e => { const f = e.target.files[0]; if (f) $('#impText').value = await f.text(); };
+  $('#impCopy').onclick = () => navigator.clipboard.writeText(IMPORT_PROMPT).then(() => { $('#impCopy').textContent = 'Copied'; }, () => { $('#impCopy').textContent = 'Copy failed'; });
+  $('#impGo').onclick = () => { try { runImport($('#impText').value); } catch (e) { $('#impErr').textContent = e.message; } };
+}
+function runImport(text) {
+  let j; try { j = JSON.parse(text); } catch (e) { throw new Error('That is not valid JSON: ' + e.message); }
+  const nt = normalizeTrip(j.trip || j);
+  const ex = D.trips.find(x => x.id === nt.id);
+  if (!ex) { resolveLinks(nt, nt.bookings); D.trips.push(nt); view = { page: 'trip', tripId: nt.id, tab: 'itinerary' }; closeModal(); return commit(); }
+  if (ex.status === 'locked') throw new Error(`"${ex.name}" is locked, so its itinerary can't be replaced. Change the "id" in the JSON to import it as a new trip.`);
+  const count = days => days.reduce((n, d) => n + d.stops.length, 0);
+  openModal(`<h2 class="font-serif text-xl font-bold mb-2">"${esc(ex.name)}" is already here</h2>
+    <p class="text-sm text-navy-600">The file has ${nt.days.length} days and ${count(nt.days)} stops. The trip has ${count(ex.days)}.</p>
+    <p class="text-sm text-navy-600 mt-2"><b>Update itinerary</b> replaces the stops and keeps your bookings, checklist and notes. Ratings and actuals on the old stops are lost.</p>
+    <div class="flex flex-wrap justify-end gap-2 mt-5"><button class="btn btn-sand" onclick="closeModal()">Cancel</button><button class="btn btn-sand" id="impCopyTrip">Import as new copy</button><button class="btn btn-primary" id="impUpdate">Update itinerary</button></div>`);
+  $('#impUpdate').onclick = () => { resolveLinks(nt, ex.bookings); ex.days = nt.days; ex.start = nt.start; ex.end = nt.end; view = { page: 'trip', tripId: ex.id, tab: 'itinerary' }; closeModal(); commit(); };
+  $('#impCopyTrip').onclick = () => { nt.id = uid(); nt.name += ' (copy)'; resolveLinks(nt, nt.bookings); D.trips.push(nt); view = { page: 'trip', tripId: nt.id, tab: 'itinerary' }; closeModal(); commit(); };
+}
+
 /* ===== Actions ===== */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
   const a = el.dataset.act, t = view.tripId ? trip() : null;
   if (a === 'newTrip') return newTripModal();
+  if (a === 'importTrip') return importModal();
   if (a === 'openTrip') { view = { page: 'trip', tripId: el.dataset.id, tab: 'itinerary' }; return render(); }
   if (a === 'back') { view = { page: 'list', tripId: null, tab: 'itinerary' }; return render(); }
   if (a === 'tab') { view.tab = el.dataset.tab; return render(); }
@@ -443,8 +539,9 @@ function stopModal(t, di, id) {
   openModal(`<h2 class="font-serif text-xl font-bold">${locked ? 'Rate: ' + esc(s.title) : id ? 'Edit stop' : 'Add stop'} <span class="text-sm font-sans text-navy-600">Day ${di + 1}</span></h2><form>
     <label class="lbl">Type</label><select class="inp" name="type" ${ro}>${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${k === s.type ? 'selected' : ''}>${v[0]} ${v[1]}</option>`).join('')}</select>
     ${field('Title', 'title', s.title, 'text', 'required ' + ro)}
-    <div class="grid grid-cols-3 gap-3"><div>${field('Starts', 'time', s.time, 'time', ro)}</div><div>${field('Ends', 'endTime', s.endTime || '', 'time', ro)}</div><div>${field('Cost', 'cost', s.cost ?? '', 'number', 'step="0.01" ' + ro)}</div></div>
+    <div class="grid grid-cols-3 gap-3"><div>${field('Starts', 'time', s.time, 'time', ro)}</div><div>${field('Ends', 'endTime', s.endTime || '', 'time', ro)}</div><div>${field('Spend', 'cost', s.cost ?? '', 'number', 'step="0.01" ' + ro)}</div></div>
     ${field('Link', 'link', s.link, 'url', ro)}
+    <p class="text-xs text-navy-600 mt-1">Spend is extra money on the day. Prepaid costs live under Bookings. Enter 0 if there is nothing extra.</p>
     <label class="lbl">Linked bookings</label><div class="border border-sand-200 rounded-lg p-2 max-h-32 overflow-y-auto bg-sand-50">${t.bookings.length ? t.bookings.map(bk => `<label class="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" name="bk" value="${bk.id}" ${(s.bookingIds || []).includes(bk.id) ? 'checked' : ''} ${ro}> ${CATS[bk.category || 'other'][0]} ${esc(bk.title)}</label>`).join('') : '<span class="text-xs text-navy-600">No bookings yet.</span>'}</div>
     <label class="lbl">Notes</label><textarea class="inp" name="notes" rows="2" ${ro}>${esc(s.notes)}</textarea>
     <label class="lbl">Rating</label><div id="starBox">${stars(rating, true)}</div>

@@ -1,0 +1,609 @@
+{
+ "format": "vacationguru-trip",
+ "version": 1,
+ "id": "perth-2026",
+ "name": "Perth & Margaret River",
+ "destination": "Perth, Western Australia",
+ "start": "2026-11-02",
+ "end": "2026-11-08",
+ "days": [
+  {
+   "date": "2026-11-02",
+   "title": "Singapore → Perth",
+   "stops": [
+    {
+     "type": "transport",
+     "start": "07:20",
+     "title": "Flight from Singapore to Perth (SQ213)",
+     "end": "12:35",
+     "bookings": [
+      "SIA flight"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "12:35",
+     "title": "Arrive in Perth (T1 International); clear immigration, collect bags"
+    },
+    {
+     "type": "transport",
+     "start": "13:30",
+     "title": "Ace Rental Cars shuttle pickup from T1 International",
+     "bookings": [
+      "Car rental"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "13:50",
+     "title": "Complete rental car paperwork at Ace (17 Ross Dr, Redcliffe)",
+     "bookings": [
+      "Car rental"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "14:20",
+     "title": "Drive to Adina Apartment Hotel Perth Barrack Plaza"
+    },
+    {
+     "type": "accommodation",
+     "start": "14:45",
+     "title": "Check in; settle into apartment",
+     "bookings": [
+      "Adina Barrack Plaza, 2–5"
+     ]
+    },
+    {
+     "type": "shopping",
+     "start": "15:30",
+     "title": "Supply run to Woolworths (St Georges Terrace)"
+    },
+    {
+     "type": "transport",
+     "start": "16:15",
+     "title": "Walk to Stirling Gardens & Supreme Court Gardens"
+    },
+    {
+     "type": "transport",
+     "start": "16:45",
+     "title": "Walk to Elizabeth Quay"
+    },
+    {
+     "type": "activity",
+     "start": "17:00",
+     "title": "Explore Elizabeth Quay waterfront (Island Playground)"
+    },
+    {
+     "type": "dining",
+     "start": "18:00",
+     "title": "Dinner at The Island Brew House"
+    },
+    {
+     "type": "transport",
+     "start": "19:00",
+     "title": "Walk back to hotel"
+    },
+    {
+     "type": "rest",
+     "start": "20:00",
+     "title": "Rest at hotel"
+    }
+   ]
+  },
+  {
+   "date": "2026-11-03",
+   "title": "Perth — Zoo & Kings Park",
+   "stops": [
+    {
+     "type": "transport",
+     "start": "08:00",
+     "title": "Leave hotel; walk to Petition Kitchen"
+    },
+    {
+     "type": "dining",
+     "start": "08:10",
+     "title": "Breakfast at Petition Kitchen"
+    },
+    {
+     "type": "transport",
+     "start": "09:00",
+     "title": "Walk back to hotel; collect car"
+    },
+    {
+     "type": "transport",
+     "start": "09:20",
+     "title": "Drive to Perth Zoo"
+    },
+    {
+     "type": "activity",
+     "start": "09:35",
+     "title": "Perth Zoo",
+     "bookings": [
+      "Perth Zoo"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "12:00",
+     "title": "Drive to The Little Banksia, Kensington"
+    },
+    {
+     "type": "dining",
+     "start": "12:10",
+     "title": "Lunch at The Little Banksia"
+    },
+    {
+     "type": "transport",
+     "start": "13:10",
+     "title": "Drive back to Adina Hotel"
+    },
+    {
+     "type": "rest",
+     "start": "13:30",
+     "title": "Toddler nap / rest"
+    },
+    {
+     "type": "transport",
+     "start": "16:00",
+     "title": "Drive to Kings Park (Wadjuk Carpark)"
+    },
+    {
+     "type": "activity",
+     "start": "16:15",
+     "title": "Lotterywest Federation Walkway (one-way)"
+    },
+    {
+     "type": "activity",
+     "start": "16:35",
+     "title": "Boab Tree (Gija Boab)"
+    },
+    {
+     "type": "activity",
+     "start": "16:45",
+     "title": "WA Botanic Garden walk-through"
+    },
+    {
+     "type": "transport",
+     "start": "17:15",
+     "title": "Drive to May Drive Parkland"
+    },
+    {
+     "type": "activity",
+     "start": "17:25",
+     "title": "May Drive Parkland (Dinosaur Playground)"
+    },
+    {
+     "type": "transport",
+     "start": "18:00",
+     "title": "Drive to Ribs Lane, Subiaco"
+    },
+    {
+     "type": "dining",
+     "start": "18:10",
+     "title": "Dinner at Ribs Lane, Subiaco"
+    },
+    {
+     "type": "transport",
+     "start": "19:30",
+     "title": "Drive back to Adina Hotel"
+    }
+   ]
+  },
+  {
+   "date": "2026-11-04",
+   "title": "Perth — Rottnest Island",
+   "stops": [
+    {
+     "type": "dining",
+     "start": "07:15",
+     "title": "Breakfast at Adina (self-catered)"
+    },
+    {
+     "type": "transport",
+     "start": "07:45",
+     "title": "Drive to Victoria Quay parking, Fremantle"
+    },
+    {
+     "type": "transport",
+     "start": "08:05",
+     "title": "Park; walk to C Shed"
+    },
+    {
+     "type": "transport",
+     "start": "09:30",
+     "title": "Ferry departs Fremantle (B Shed) to Rottnest Island",
+     "bookings": [
+      "Rottnest ferry"
+     ]
+    },
+    {
+     "type": "activity",
+     "start": "10:00",
+     "title": "Arrive Rottnest Island; buy Island Explorer bus pass; quokka spotting",
+     "bookings": [
+      "Rottnest bus"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "10:20",
+     "title": "Island Explorer bus to Wadjemup Lighthouse",
+     "bookings": [
+      "Rottnest bus"
+     ]
+    },
+    {
+     "type": "activity",
+     "start": "10:37",
+     "title": "Wadjemup Lighthouse"
+    },
+    {
+     "type": "transport",
+     "start": "11:17",
+     "title": "Island Explorer bus to West End",
+     "bookings": [
+      "Rottnest bus"
+     ]
+    },
+    {
+     "type": "activity",
+     "start": "11:35",
+     "title": "West End (Cathedral Rocks, fur seals)"
+    },
+    {
+     "type": "transport",
+     "start": "12:15",
+     "title": "Island Explorer bus to Main Bus Stop",
+     "bookings": [
+      "Rottnest bus"
+     ]
+    },
+    {
+     "type": "dining",
+     "start": "12:40",
+     "title": "Lunch + bakery treat at Thomson Bay Settlement"
+    },
+    {
+     "type": "transport",
+     "start": "13:50",
+     "title": "Walk to C Shed"
+    },
+    {
+     "type": "transport",
+     "start": "14:15",
+     "title": "Return ferry to Fremantle (B Shed)",
+     "bookings": [
+      "Rottnest ferry"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "14:45",
+     "title": "Drive back to Adina Hotel"
+    },
+    {
+     "type": "dining",
+     "start": "18:00",
+     "title": "Dinner at Light Years, Mitchell's Buildings"
+    }
+   ]
+  },
+  {
+   "date": "2026-11-05",
+   "title": "Perth → Margaret River",
+   "stops": [
+    {
+     "type": "dining",
+     "start": "07:15",
+     "title": "Breakfast at Adina (self-catered); pack; check out"
+    },
+    {
+     "type": "transport",
+     "start": "08:00",
+     "title": "Drive to Busselton"
+    },
+    {
+     "type": "transport",
+     "start": "10:20",
+     "title": "Walk Busselton Jetty"
+    },
+    {
+     "type": "dining",
+     "start": "11:00",
+     "title": "Lunch at The Deck, Busselton marina"
+    },
+    {
+     "type": "transport",
+     "start": "12:00",
+     "title": "Drive to Dunsborough"
+    },
+    {
+     "type": "activity",
+     "start": "12:20",
+     "title": "Stroll Dunsborough foreshore"
+    },
+    {
+     "type": "transport",
+     "start": "12:45",
+     "title": "Drive to Sugarloaf Rock"
+    },
+    {
+     "type": "activity",
+     "start": "13:05",
+     "title": "Sugarloaf Rock viewing platform"
+    },
+    {
+     "type": "transport",
+     "start": "13:25",
+     "title": "Drive to Canal Rocks"
+    },
+    {
+     "type": "activity",
+     "start": "13:40",
+     "title": "Canal Rocks"
+    },
+    {
+     "type": "transport",
+     "start": "14:05",
+     "title": "Drive to Margaret River Chocolate Company, Metricup"
+    },
+    {
+     "type": "activity",
+     "start": "14:35",
+     "title": "Margaret River Chocolate Company — tastings, nature play"
+    },
+    {
+     "type": "transport",
+     "start": "15:10",
+     "title": "Drive to Margaret River Resort"
+    },
+    {
+     "type": "accommodation",
+     "start": "15:35",
+     "title": "Check in",
+     "bookings": [
+      "Margaret River Resort"
+     ]
+    },
+    {
+     "type": "rest",
+     "start": "15:45",
+     "title": "Rest, or stroll Rotary Park / river footbridge / main street"
+    },
+    {
+     "type": "transport",
+     "start": "18:00",
+     "title": "Walk to Margaret River Brewhouse"
+    },
+    {
+     "type": "dining",
+     "start": "18:10",
+     "title": "Dinner at Margaret River Brewhouse"
+    },
+    {
+     "type": "transport",
+     "start": "19:30",
+     "title": "Walk back to resort"
+    }
+   ]
+  },
+  {
+   "date": "2026-11-06",
+   "title": "Margaret River",
+   "stops": [
+    {
+     "type": "transport",
+     "start": "07:45",
+     "title": "Walk to Drift Cafe"
+    },
+    {
+     "type": "dining",
+     "start": "07:50",
+     "title": "Breakfast at Drift Cafe"
+    },
+    {
+     "type": "transport",
+     "start": "08:30",
+     "title": "Drive to Jewel Cave, Augusta"
+    },
+    {
+     "type": "activity",
+     "start": "09:30",
+     "title": "Jewel Cave guided tour",
+     "bookings": [
+      "Jewel Cave"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "10:30",
+     "title": "Drive to Glenarty Road, Karridale"
+    },
+    {
+     "type": "activity",
+     "start": "10:45",
+     "title": "Glenarty Road — wine tasting, farm/garden walk, lunch (kids' feast)"
+    },
+    {
+     "type": "transport",
+     "start": "13:30",
+     "title": "Drive to Boranup Forest"
+    },
+    {
+     "type": "activity",
+     "start": "13:50",
+     "title": "Boranup Forest — karri trees, kangaroo spotting, Boranup Gallery"
+    },
+    {
+     "type": "transport",
+     "start": "14:20",
+     "title": "Drive to Margaret River Resort"
+    },
+    {
+     "type": "rest",
+     "start": "14:45",
+     "title": "Rest / resort pool & playground, or main street stroll"
+    },
+    {
+     "type": "transport",
+     "start": "17:30",
+     "title": "Walk to Settlers Tavern"
+    },
+    {
+     "type": "dining",
+     "start": "17:40",
+     "title": "Dinner at Settlers Tavern"
+    },
+    {
+     "type": "transport",
+     "start": "19:00",
+     "title": "Walk back to resort"
+    }
+   ]
+  },
+  {
+   "date": "2026-11-07",
+   "title": "Margaret River → Fremantle → Perth",
+   "stops": [
+    {
+     "type": "shopping",
+     "start": "07:30",
+     "title": "Margaret River Farmers Market"
+    },
+    {
+     "type": "accommodation",
+     "start": "09:00",
+     "title": "Freshen up; check out of Margaret River Resort",
+     "bookings": [
+      "Margaret River Resort"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "09:20",
+     "title": "Drive to Bunbury"
+    },
+    {
+     "type": "dining",
+     "start": "10:45",
+     "title": "Toilet break + refreshments at Little Spencer Coffee Co, Bunbury"
+    },
+    {
+     "type": "transport",
+     "start": "11:15",
+     "title": "Drive to Fremantle (Fishing Boat Harbour)"
+    },
+    {
+     "type": "dining",
+     "start": "12:50",
+     "title": "Lunch at Kailis Fish Market Cafe"
+    },
+    {
+     "type": "transport",
+     "start": "13:50",
+     "title": "Drive to Fremantle Markets"
+    },
+    {
+     "type": "shopping",
+     "start": "14:00",
+     "title": "Fremantle Markets"
+    },
+    {
+     "type": "transport",
+     "start": "14:40",
+     "title": "Drive to Adina CBD"
+    },
+    {
+     "type": "accommodation",
+     "start": "15:05",
+     "title": "Check in; rest",
+     "bookings": [
+      "Adina Barrack Plaza, 7–8"
+     ]
+    },
+    {
+     "type": "shopping",
+     "start": "16:00",
+     "title": "Shopping (Kmart/Myer/David Jones, Hay St Mall)"
+    },
+    {
+     "type": "transport",
+     "start": "17:10",
+     "title": "Walk back to hotel; rest"
+    },
+    {
+     "type": "transport",
+     "start": "18:30",
+     "title": "Walk to BamBamBoo"
+    },
+    {
+     "type": "dining",
+     "start": "18:40",
+     "title": "Dinner at BamBamBoo"
+    }
+   ]
+  },
+  {
+   "date": "2026-11-08",
+   "title": "Perth → Singapore",
+   "stops": [
+    {
+     "type": "transport",
+     "start": "08:00",
+     "title": "Walk to Deli Gabe, Murray St"
+    },
+    {
+     "type": "dining",
+     "start": "08:10",
+     "title": "Breakfast at Deli Gabe"
+    },
+    {
+     "type": "transport",
+     "start": "09:00",
+     "title": "Walk back to hotel"
+    },
+    {
+     "type": "transport",
+     "start": "09:45",
+     "title": "Leave Adina CBD; drive to Ace Rental Cars, Ross Dr"
+    },
+    {
+     "type": "transport",
+     "start": "10:10",
+     "title": "Return car",
+     "bookings": [
+      "Car rental"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "10:25",
+     "title": "Courtesy shuttle to T1 International",
+     "bookings": [
+      "Car rental"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "10:40",
+     "title": "Check-in, security, immigration"
+    },
+    {
+     "type": "transport",
+     "start": "13:50",
+     "title": "Flight from Perth to Singapore (SQ226)",
+     "end": "19:10",
+     "bookings": [
+      "SIA flight"
+     ]
+    },
+    {
+     "type": "transport",
+     "start": "19:10",
+     "title": "Arrive in Singapore"
+    }
+   ]
+  }
+ ]
+}

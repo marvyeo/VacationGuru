@@ -3,6 +3,18 @@
 > **Next chat name: `VacationGuru ver 4`**
 > Claude: your FIRST reply in a new chat must start with "Rename this chat to: **VacationGuru ver 4**" (you can't rename chats yourself). In your first commit this session, bump the number here by 1.
 
+> ## ▶ RESUME HERE (checkpoint 2 of 2: menu images)
+> **Done (CP1, 2026-10-23):** timeline layout, on-the-day spend prompt, trip import, and `imports/perth-2026.json` (100 stops from Marvin's PDF, not yet imported into the app).
+> **Next step:** let Marvin attach menu images to a stop (mainly `dining`) ahead of time and save them to his Drive.
+> **Design (agreed in principle, confirm with Marvin):**
+> - Upload through the existing `drive.file` token into a Drive folder `VacationGuru Menus` (find or create by name; keep the folder id in the data file).
+> - Resize in the browser first (max ~1600px, JPEG ~0.8) to save data and Drive space.
+> - Store `stop.menuImages = [{ fileId, name }]` in `vacationguru-data.json`. Show a "🍽️ Menu (n)" button on the stop. Open a gallery that loads the images with authenticated `fetch()` and `URL.createObjectURL`.
+> - Remove = move to Drive trash (`PATCH trashed: true`), not permanent delete. Check `res.ok` on every call and handle the 401 reconnect.
+> - Needs Drive connected; if not, prompt to connect.
+> **Files:** `index.html` (stop modal, itinerary row, `drive()` helper). **First command:** `git pull`.
+> **Restart prompt for Marvin:** "Continue VacationGuru ver 4 from RESUME HERE". Delete this block once menus work.
+
 **State version:** 3 (ver 1 written 2026-10-20 in "Life Plan Roadmap ver 2"; moved into the repo 2026-10-22 by "Life Plan Roadmap ver 3")
 **Where this lives:** `PROJECT_STATE.md` in the repo. New chats `git pull` and read it; no uploads needed.
 **Project status:** ⏸ **ON HOLD after the Perth trip (2–8 Nov 2026).** No further holidays are planned for a while. Resume when the next trip is being planned.
@@ -59,6 +71,10 @@ A single-file trip planner (vanilla JS, Tailwind CDN, Playfair Display and Inter
 - **Start and end times:** every itinerary stop has Starts and Ends times (e.g. flight departs and arrives).
 - **Linked bookings:** a stop can link to one or more bookings and shows their cost, source, pax, reference and seats underneath.
 - **Checklist tab:** grouped to-do items with optional due dates. Undone items with a due date feed `upcoming[]`. New trips copy the checklist from a skeleton, with everything unticked.
+- **Timeline layout (2026-10-23):** start time on the left, then end time and duration (e.g. `5h 15m`). A stop with no end time shows `~end` and `~duration` inferred from the next stop. Day headers show an optional day title.
+- **On-the-day spend:** a stop's cost field is now "Spend" (extra money on the day). Stops linked to a costed booking show a "＋ Add on-the-day spend" prompt until a value is entered (0 dismisses it). Summary shows it as "On-the-day spend".
+- **More stop types:** shopping and rest, alongside stay, dining, activity, transport, booking.
+- **Import (2026-10-23):** Import button on the trips list. Paste JSON or choose a .json file. Format `vacationguru-trip` v1, with trip, days, stops, bookings and checklist. Stops link to bookings by matching words in booking titles. If the trip `id` already exists, choose Update itinerary (keeps bookings, checklist, notes) or Import as new copy. The modal has a copyable prompt to give Claude when designing a trip.
 - **Icon:** suitcase glyph in the ecosystem icon set (`marvyeo/LifePlan/design/make_icons.py`).
 
 ## 2. Current Facts (updated 2026-10-22)
@@ -72,6 +88,7 @@ A single-file trip planner (vanilla JS, Tailwind CDN, Playfair Display and Inter
 | Code | ✅ `index.html` committed 2026-10-23 (uploaded by Marvin). Single file, ~33 KB. Pages should serve it at `https://marvyeo.github.io/VacationGuru/`. |
 | `upcoming[]` | ✅ Already in the code: `computeUpcoming()` writes `trip` and `due-date` items at the root of `vacationguru-data.json` on every save. Untested against Life Plan. |
 | Data version | ✅ v2 (2026-10-23). `migrate()` upgrades v1 data from localStorage or Drive on load, once. Perth stops were auto-linked to bookings by name. Not yet filled in for Perth: booking references, seats, pax for hotels/car/attractions, end times for stops, checklist due dates. |
+| Perth full itinerary | ✅ `imports/perth-2026.json` generated 2026-10-23 from `Perth_2026_V1.pdf` (7 days, 100 stops, 18 linked to bookings). ⏳ Marvin still needs to run Import in the app. Note: the PDF has no Quest stay on 4–5 Nov (Adina all the way to 5 Nov), but the Bookings list does. Checklist item left open. |
 | Ecosystem lessons | ✅ Already in the code: direct Drive `fetch()`, `res.ok` checks, 401 reconnect. ❌ Not yet: PWA files (`manifest.json`, `sw.js`, icons), iPhone redirect sign-in fallback, multi-device merge. |
 | Seed data | Perth & Margaret River, 2–8 Nov 2026, 7 days. Travellers: Marvin, Caroline, Cobae (toddler) and a guest adult. |
 
@@ -130,3 +147,4 @@ Don't deploy VacationGuru for Perth; the trip is fully settled outside the app. 
 - **ver 3 (2026-10-23):** Marvin enabled GitHub Pages and finished the Google OAuth setup. Recorded both. `index.html` is still not in the repo (it was never found), so it is the next blocker. Next chat name bumped to ver 4.
 - **ver 3 (2026-10-23, later):** `index.html` uploaded by Marvin and committed. It already has the reconciled Perth seed, `upcoming[]`, direct Drive fetch, `res.ok` checks and 401 reconnect. PWA files and the iPhone sign-in fallback are still missing.
 - **ver 3 (2026-10-23, later still):** Booking details (category, reference, booked via, pax, carrier, seats), start and end times on stops, stop-to-booking links, and a Checklist tab. Added `migrate()` so existing Drive data upgrades without loss. Tested in Node against the seed only, not against Marvin's saved Drive file or in a browser.
+- **ver 3 (2026-10-23, checkpoint 1 of the second batch):** Timeline layout with durations, on-the-day spend prompt, shopping and rest types, day titles, and a trip Import function with a Claude prompt. Generated `imports/perth-2026.json` from the PDF. Tested in Node (parsing, linking, durations, error messages), not in a browser. Menu images are next (see RESUME HERE).
