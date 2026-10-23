@@ -1,9 +1,9 @@
 # VacationGuru — Project State
 
-> **Next chat name: `VacationGuru ver 3`**
-> Claude: your FIRST reply in a new chat must start with "Rename this chat to: **VacationGuru ver 3**" (you can't rename chats yourself). In your first commit this session, bump the number here by 1.
+> **Next chat name: `VacationGuru ver 4`**
+> Claude: your FIRST reply in a new chat must start with "Rename this chat to: **VacationGuru ver 4**" (you can't rename chats yourself). In your first commit this session, bump the number here by 1.
 
-**State version:** 2 (ver 1 written 2026-10-20 in "Life Plan Roadmap ver 2"; moved into the repo 2026-10-22 by "Life Plan Roadmap ver 3")
+**State version:** 3 (ver 1 written 2026-10-20 in "Life Plan Roadmap ver 2"; moved into the repo 2026-10-22 by "Life Plan Roadmap ver 3")
 **Where this lives:** `PROJECT_STATE.md` in the repo. New chats `git pull` and read it; no uploads needed.
 **Project status:** ⏸ **ON HOLD after the Perth trip (2–8 Nov 2026).** No further holidays are planned for a while. Resume when the next trip is being planned.
 
@@ -61,7 +61,9 @@ A single-file trip planner (vanilla JS, Tailwind CDN, Playfair Display and Inter
 
 | Item | Status |
 |---|---|
-| GitHub repo | ✅ `marvyeo/VacationGuru` created 2026-10-22. Holds this file only; **no app code yet**. Pages not enabled. |
+| GitHub repo | ✅ `marvyeo/VacationGuru` created 2026-10-22. Holds `PROJECT_STATE.md` and `CLAUDE.md` only; **no app code yet**. |
+| GitHub Pages | ✅ Enabled by Marvin 2026-10-23. Site will 404 until `index.html` is committed. |
+| Google OAuth | ✅ Marked done by Marvin 2026-10-23 (To-Do item 2). Not yet tested, since there is no app to sign in from. |
 | Drive file | ❌ No `vacationguru-data.json` in Drive. The app has never been signed into or saved. |
 | Code | `index.html` was delivered as a download in the original chat ("VacationGuru", last updated 2026-10-16). It lives only in that chat or on Marvin's computer. |
 | `upcoming[]` | Not built. |
@@ -101,7 +103,7 @@ Don't deploy VacationGuru for Perth; the trip is fully settled outside the app. 
 ## 5. To-Do When Resuming
 
 1. Locate `index.html` (Marvin's computer, or the original chat's download) and commit it here.
-2. Enable GitHub Pages, and add `https://marvyeo.github.io/VacationGuru/` to Authorized redirect URIs in Google Cloud (the JS origin `https://marvyeo.github.io` is already registered).
+2. ✅ DONE 2026-10-23: GitHub Pages enabled and Google Cloud OAuth set up. Still to verify once `index.html` is live: sign-in works from `https://marvyeo.github.io/VacationGuru/`.
 3. Apply the ecosystem lessons learned since the build:
    - Use direct `fetch()` calls to the Drive REST API (no `gapi.client.drive` or `discoveryDocs`).
    - Check `res.ok` on every save and load (TV World had a silent-save bug).
@@ -119,3 +121,4 @@ Don't deploy VacationGuru for Perth; the trip is fully settled outside the app. 
 
 - **ver 1 (2026-10-20):** Initial state file. Recorded that the app was never deployed, the Perth booking reference, and the hold decision. Perth confirmed settled.
 - **ver 2 (2026-10-22):** moved into the new `marvyeo/VacationGuru` repo; added Session Rules and `CLAUDE.md`; PWA checklist added to the resume steps.
+- **ver 3 (2026-10-23):** Marvin enabled GitHub Pages and finished the Google OAuth setup. Recorded both. `index.html` is still not in the repo (it was never found), so it is the next blocker. Next chat name bumped to ver 4.
