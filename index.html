@@ -208,7 +208,8 @@ function openModal(html, onSubmit) {
   const f = $('#modalBox form');
   if (f) f.onsubmit = e => { e.preventDefault(); const ok = onSubmit(new FormData(f), f); if (ok !== false) closeModal(); };
 }
-function closeModal() { $('#modal').classList.add('hidden'); $('#modalBox').innerHTML = ''; }
+const blobUrls = [];   // object URLs made for menu photos; freed when the modal closes
+function closeModal() { blobUrls.splice(0).forEach(u => URL.revokeObjectURL(u)); $('#modal').classList.add('hidden'); $('#modalBox').innerHTML = ''; }
 $('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal' || e.target.parentElement?.id === 'modal') closeModal(); });
 const field = (label, name, val = '', type = 'text', extra = '') => `<label class="lbl">${label}</label><input class="inp" name="${name}" type="${type}" value="${esc(val)}" ${extra}>`;
 const modalFoot = (extra = '') => `<div class="flex justify-between mt-5"><div>${extra}</div><div class="flex gap-2"><button type="button" class="btn btn-sand" onclick="closeModal()">Cancel</button><button class="btn btn-primary">Save</button></div></div>`;
@@ -278,7 +279,7 @@ function itineraryTab(t, locked) {
             <div class="text-lg leading-none pt-0.5">${(TYPES[s.type] || TYPES.activity)[0]}</div>
             <div class="flex-1 min-w-0"><div class="flex flex-wrap items-baseline gap-x-2"><span class="font-medium">${esc(s.title)}</span>${s.cost ? `<span class="text-xs text-navy-600">· spend ${money(s.cost)}</span>` : ''}${s.link ? `<a class="text-xs underline text-sand-600" target="_blank" rel="noopener" href="${esc(s.link)}">link</a>` : ''}</div>
             ${s.notes ? `<div class="text-sm text-navy-600">${esc(s.notes)}</div>` : ''}${s.actualNotes ? `<div class="text-sm italic text-sand-600">Actual: ${esc(s.actualNotes)}</div>` : ''}
-            ${linkedLines(t, s)}${prompt}${s.rating ? `<div>${stars(s.rating)}</div>` : ''}</div>
+            ${linkedLines(t, s)}${(s.menuImages || []).length ? `<button class="badge bg-sand-100 text-sand-600 mt-1" data-act="openMenu" data-day="${i}" data-id="${s.id}">🍽️ Menu (${s.menuImages.length})</button>` : ''}${prompt}${s.rating ? `<div>${stars(s.rating)}</div>` : ''}</div>
             <button class="text-xs text-navy-600 underline self-start" data-act="editStop" data-day="${i}" data-id="${s.id}">${locked ? 'Rate' : 'Edit'}</button>
           </div></div>`;
       }).join('') : '<div class="text-sm text-navy-600 py-1">Nothing planned yet.</div>'}
@@ -466,10 +467,111 @@ function runImport(text) {
   const count = days => days.reduce((n, d) => n + d.stops.length, 0);
   openModal(`<h2 class="font-serif text-xl font-bold mb-2">"${esc(ex.name)}" is already here</h2>
     <p class="text-sm text-navy-600">The file has ${nt.days.length} days and ${count(nt.days)} stops. The trip has ${count(ex.days)}.</p>
-    <p class="text-sm text-navy-600 mt-2"><b>Update itinerary</b> replaces the stops and keeps your bookings, checklist and notes. Ratings and actuals on the old stops are lost.</p>
+    <p class="text-sm text-navy-600 mt-2"><b>Update itinerary</b> replaces the stops and keeps your bookings, checklist and notes. Ratings, actuals and menu photo links on the old stops are lost (the photos stay in your Drive).</p>
     <div class="flex flex-wrap justify-end gap-2 mt-5"><button class="btn btn-sand" onclick="closeModal()">Cancel</button><button class="btn btn-sand" id="impCopyTrip">Import as new copy</button><button class="btn btn-primary" id="impUpdate">Update itinerary</button></div>`);
   $('#impUpdate').onclick = () => { resolveLinks(nt, ex.bookings); ex.days = nt.days; ex.start = nt.start; ex.end = nt.end; view = { page: 'trip', tripId: ex.id, tab: 'itinerary' }; closeModal(); commit(); };
   $('#impCopyTrip').onclick = () => { nt.id = uid(); nt.name += ' (copy)'; resolveLinks(nt, nt.bookings); D.trips.push(nt); view = { page: 'trip', tripId: nt.id, tab: 'itinerary' }; closeModal(); commit(); };
+}
+
+/* ===== Menu photos: Drive folder, browser-side resize, offline cache ===== */
+const MENU_FOLDER = 'VacationGuru Menus', MENU_CACHE = 'vg-menus';
+const menuErr = e => e.message === 'Not connected' ? 'Connect Drive first (button at the top), then try again.'
+  : e.message === '401' ? 'Drive session expired. Tap Reconnect at the top, then try again.' : e.message;
+const safeName = s => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+function shrink(file, max = 1600) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => b ? res(b) : rej(new Error('Could not compress ' + file.name)), 'image/jpeg', 0.8);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error(file.name + ' is not an image this browser can open.')); };
+    img.src = url;
+  });
+}
+/* Cache API copy so menus open at the restaurant with no signal. Per device; silently skipped if unavailable. */
+async function cachePut(id, blob) { try { await (await caches.open(MENU_CACHE)).put('vg-menu/' + id, new Response(blob, { headers: { 'Content-Type': 'image/jpeg' } })); } catch (e) {} }
+async function cacheGet(id) { try { const r = await (await caches.open(MENU_CACHE)).match('vg-menu/' + id); return r ? await r.blob() : null; } catch (e) { return null; } }
+async function cacheDel(id) { try { await (await caches.open(MENU_CACHE)).delete('vg-menu/' + id); } catch (e) {} }
+async function menuFolder(force) {
+  if (D.menuFolderId && !force) return D.menuFolderId;
+  const q = encodeURIComponent(`name='${MENU_FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const j = await (await drive(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id)`)).json();
+  let id = j.files && j.files[0] && j.files[0].id;
+  if (!id) {
+    const c = await (await drive('https://www.googleapis.com/drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: MENU_FOLDER, mimeType: 'application/vnd.google-apps.folder' }) })).json();
+    if (!c.id) throw new Error('Folder create returned no id');
+    id = c.id;
+  }
+  D.menuFolderId = id; return id;
+}
+async function uploadMenu(blob, name) {
+  for (let attempt = 0; ; attempt++) {
+    const folder = await menuFolder(attempt > 0);
+    const bd = 'vg' + uid(), meta = JSON.stringify({ name, mimeType: 'image/jpeg', parents: [folder] });
+    const body = new Blob([`--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${bd}\r\nContent-Type: image/jpeg\r\n\r\n`, blob, `\r\n--${bd}--`]);
+    try {
+      const j = await (await drive('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + bd }, body })).json();
+      if (!j.id) throw new Error('Upload returned no file id');
+      return j.id;
+    } catch (e) { if (attempt === 0 && /^Drive 404/.test(e.message)) continue; throw e; }   // saved folder id may be stale: look it up again once
+  }
+}
+async function trashMenu(id) {   // Drive trash, not permanent delete
+  try { await drive(`https://www.googleapis.com/drive/v3/files/${id}?fields=id`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) }); }
+  catch (e) { if (!/^Drive 404/.test(e.message)) throw e; }
+}
+async function menuBlob(id) {
+  const c = await cacheGet(id); if (c) return c;
+  const b = await (await drive(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).blob();
+  await cachePut(id, b); return b;
+}
+async function addMenu(t, s, file) {
+  const blob = await shrink(file), n = (s.menuImages || []).length + 1;
+  const name = safeName(`${t.name} - ${s.title} - menu ${n}`) + '.jpg';
+  const fileId = await uploadMenu(blob, name);
+  (s.menuImages = s.menuImages || []).push({ fileId, name }); await cachePut(fileId, blob); commit();   // commit per photo so a cut-off upload keeps what finished
+}
+/* Stop modal section: list, add, remove. Repaints only #menuBox so typed edits in the form survive. */
+function menuUI(t, s, canAdd, isNew) {
+  const box = $('#menuBox'); if (!box) return;
+  const imgs = s.menuImages || [];
+  box.innerHTML = (imgs.map(m => `<div class="flex justify-between items-center text-sm py-0.5"><span class="truncate">🍽️ ${esc(m.name)}</span>${canAdd ? `<button type="button" class="text-xs underline text-red-700 ml-2" data-rm="${m.fileId}">Remove</button>` : ''}</div>`).join('')
+    || `<div class="text-xs text-navy-600">${isNew ? 'Save the stop first, then edit it to add menu photos.' : 'No menu photos.'}</div>`)
+    + (canAdd ? '<input type="file" accept="image/*" multiple id="menuFile" class="text-sm mt-2 block">' : '')
+    + '<p id="menuMsg" class="text-xs text-navy-600 mt-1"></p>';
+  const msg = m => { const el = $('#menuMsg'); if (el) el.textContent = m; };
+  const fi = $('#menuFile');
+  if (fi) fi.onchange = async () => {
+    const files = [...fi.files]; if (!files.length) return;
+    fi.disabled = true; let note = '', done = 0;
+    try { for (const f of files) { msg(`Uploading ${done + 1} of ${files.length}…`); await addMenu(t, s, f); done++; } note = `Saved ${done} photo${done > 1 ? 's' : ''} to Drive.`; }
+    catch (e) { note = (done ? `Saved ${done}, then stopped: ` : '') + menuErr(e); }
+    menuUI(t, s, canAdd, isNew); msg(note);
+  };
+  box.querySelectorAll('[data-rm]').forEach(btn => btn.onclick = async () => {
+    if (!confirm('Move this menu photo to your Drive trash?')) return;
+    msg('Removing…');
+    try { await trashMenu(btn.dataset.rm); s.menuImages = s.menuImages.filter(m => m.fileId !== btn.dataset.rm); await cacheDel(btn.dataset.rm); commit(); menuUI(t, s, canAdd, isNew); msg('Removed.'); }
+    catch (e) { msg(menuErr(e)); }
+  });
+}
+/* Gallery from the itinerary row. Cached copies open without Drive; otherwise it fetches with the token. */
+async function menuGallery(t, di, id) {
+  const s = t.days[di].stops.find(x => x.id === id), imgs = s.menuImages || [];
+  openModal(`<h2 class="font-serif text-xl font-bold">🍽️ ${esc(s.title)}</h2><p class="text-xs text-navy-600">Tap a photo to open it full size.</p>
+    <div class="grid gap-3 mt-3 max-h-[70vh] overflow-y-auto">${imgs.map(m => `<div data-gid="${m.fileId}" class="text-sm text-navy-600 py-6 text-center">Loading…</div>`).join('')}</div>
+    <div class="flex justify-end mt-4"><button class="btn btn-sand" onclick="closeModal()">Close</button></div>`);
+  await Promise.all(imgs.map(async m => {
+    try {
+      const blob = await menuBlob(m.fileId), box = $(`[data-gid="${m.fileId}"]`); if (!box) return;
+      const url = URL.createObjectURL(blob); blobUrls.push(url);
+      box.className = ''; box.innerHTML = `<a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${esc(m.name)}" class="w-full rounded-lg border border-sand-200"></a>`;
+    } catch (e) { const box = $(`[data-gid="${m.fileId}"]`); if (box) box.textContent = menuErr(e); }
+  }));
 }
 
 /* ===== Actions ===== */
@@ -488,6 +590,7 @@ document.addEventListener('click', e => {
   if (a === 'editTrip') return editTripModal(t);
   if (a === 'addStop') return stopModal(t, +el.dataset.day, null);
   if (a === 'editStop') return stopModal(t, +el.dataset.day, el.dataset.id);
+  if (a === 'openMenu') return menuGallery(t, +el.dataset.day, el.dataset.id);
   if (a === 'addBooking') return bookingModal(t, null);
   if (a === 'editBooking') return bookingModal(t, el.dataset.id);
   if (a === 'addCheck') return checkModal(t, null);
@@ -512,7 +615,7 @@ function newTripModal() {
     const nt = { id: uid(), name: fd.get('name').trim(), destination: fd.get('destination').trim(), start, end, status: 'planning',
       tags: sk ? [...sk.tags] : [], budgetTier: sk ? sk.budgetTier : '$$', travellers: fd.get('travellers').split(',').map(s => s.trim()).filter(Boolean), notes: sk ? `Built from skeleton: ${sk.name}` : '', lockedAt: null,
       days: Array.from({ length: n }, (_, i) => ({ date: addDays(start, i), stops: [] })), bookings: [], checklist: sk ? sk.checklist.map(c => ({ ...c, id: uid(), done: false, due: '' })) : [] };
-    if (sk) sk.days.forEach((d, i) => d.stops.filter(s => s.rating >= 4).forEach(s => nt.days[Math.min(i, n - 1)].stops.push({ ...s, id: uid(), rating: 0, actualNotes: '', cost: s.cost, notes: s.notes, bookingIds: [] })));
+    if (sk) sk.days.forEach((d, i) => d.stops.filter(s => s.rating >= 4).forEach(s => nt.days[Math.min(i, n - 1)].stops.push({ ...s, id: uid(), rating: 0, actualNotes: '', cost: s.cost, notes: s.notes, bookingIds: [], menuImages: [] })));
     D.trips.push(nt); view = { page: 'trip', tripId: nt.id, tab: 'itinerary' }; commit();
   });
 }
@@ -543,6 +646,7 @@ function stopModal(t, di, id) {
     ${field('Link', 'link', s.link, 'url', ro)}
     <p class="text-xs text-navy-600 mt-1">Spend is extra money on the day. Prepaid costs live under Bookings. Enter 0 if there is nothing extra.</p>
     <label class="lbl">Linked bookings</label><div class="border border-sand-200 rounded-lg p-2 max-h-32 overflow-y-auto bg-sand-50">${t.bookings.length ? t.bookings.map(bk => `<label class="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" name="bk" value="${bk.id}" ${(s.bookingIds || []).includes(bk.id) ? 'checked' : ''} ${ro}> ${CATS[bk.category || 'other'][0]} ${esc(bk.title)}</label>`).join('') : '<span class="text-xs text-navy-600">No bookings yet.</span>'}</div>
+    <label class="lbl">Menu photos</label><div id="menuBox" class="border border-sand-200 rounded-lg p-2 bg-sand-50"></div>
     <label class="lbl">Notes</label><textarea class="inp" name="notes" rows="2" ${ro}>${esc(s.notes)}</textarea>
     <label class="lbl">Rating</label><div id="starBox">${stars(rating, true)}</div>
     <label class="lbl">Actuals notes</label><textarea class="inp" name="actualNotes" rows="2">${esc(s.actualNotes)}</textarea>
@@ -553,6 +657,7 @@ function stopModal(t, di, id) {
     commit();
   });
   $('#starBox').onclick = e => { const st = e.target.closest('[data-star]'); if (!st) return; const v = +st.dataset.star; rating = rating === v ? 0 : v; $('#starBox').innerHTML = stars(rating, true); };
+  menuUI(t, s, !!id && !locked, !id);
   const del = $('#delStop'); if (del) del.onclick = () => { t.days[di].stops = t.days[di].stops.filter(x => x.id !== id); closeModal(); commit(); };
 }
 
