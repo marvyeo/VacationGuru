@@ -242,7 +242,7 @@ function tripTotal(t) {
 
 function tripView(t) {
   const locked = t.status === 'locked';
-  const tabs = [['itinerary', 'Itinerary'], ['bookings', 'Bookings'], ['checklist', 'Checklist'], ['summary', 'Summary']];
+  const tabs = [['itinerary', 'Itinerary'], ['food', 'Food'], ['bookings', 'Bookings'], ['checklist', 'Checklist'], ['summary', 'Summary']];
   return `
   <button class="text-sm text-sand-600 mb-2" data-act="back">← All trips</button>
   <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
@@ -257,7 +257,7 @@ function tripView(t) {
     </div></div>
   ${locked ? `<div class="card p-3 mb-4 bg-sand-100 text-sm">🔒 Locked ${t.lockedAt ? fmtShort(t.lockedAt.slice(0, 10)) : ''}. Itinerary and bookings are read-only; ratings and actuals notes stay editable. Use this trip as a skeleton for the next one.</div>` : ''}
   <div class="flex gap-1 border-b border-sand-200 mb-4">${tabs.map(([k, l]) => `<button data-act="tab" data-tab="${k}" class="px-4 py-2 text-sm font-medium ${view.tab === k ? 'border-b-2 border-navy-900 text-navy-900' : 'text-navy-600'}">${l}</button>`).join('')}</div>
-  ${view.tab === 'itinerary' ? itineraryTab(t, locked) : view.tab === 'bookings' ? bookingsTab(t, locked) : view.tab === 'checklist' ? checklistTab(t) : summaryTab(t)}`;
+  ${view.tab === 'itinerary' ? itineraryTab(t, locked) : view.tab === 'food' ? foodTab(t, locked) : view.tab === 'bookings' ? bookingsTab(t, locked) : view.tab === 'checklist' ? checklistTab(t) : summaryTab(t)}`;
 }
 
 function itineraryTab(t, locked) {
@@ -285,6 +285,28 @@ function itineraryTab(t, locked) {
       }).join('') : '<div class="text-sm text-navy-600 py-1">Nothing planned yet.</div>'}
     </div>`;
   }).join('');
+}
+
+/* Food tab: a view over the trip's Dining stops (same objects as the Itinerary, so an edit in either place shows in both). */
+function foodTab(t, locked) {
+  const days = t.days.map((d, i) => ({ d, i, rows: d.stops.filter(s => s.type === 'dining').sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')) })).filter(x => x.rows.length);
+  const all = days.flatMap(x => x.rows), withMenu = all.filter(s => (s.menuImages || []).length).length;
+  return `<div class="flex items-center justify-between mb-3"><div class="text-sm text-navy-600">${all.length} food place${all.length === 1 ? '' : 's'} · ${withMenu} with a menu</div>${locked ? '' : '<button class="btn btn-sand" data-act="addFood">+ Food place</button>'}</div>`
+    + (days.map(({ d, i, rows }) => `<div class="card p-4 mb-3"><div class="font-serif text-lg font-bold mb-1">Day ${i + 1} <span class="font-sans text-sm font-normal text-navy-600">· ${fmtDate(d.date)}${d.title ? ' · ' + esc(d.title) : ''}</span></div>
+      ${rows.map(s => `<div class="grid grid-cols-[3.5rem_1fr] gap-3 py-2 border-t border-sand-100 ${locked ? 'ro' : ''}">
+        <div class="text-right text-sm font-semibold">${s.time ? esc(s.time) : '<span class="text-xs font-normal text-navy-600">no time</span>'}</div>
+        <div class="min-w-0"><div class="flex flex-wrap items-baseline gap-x-2"><span class="font-medium">🍽️ ${esc(s.title)}</span>${s.cost ? `<span class="text-xs text-navy-600">· spend ${money(s.cost)}</span>` : ''}${s.link ? `<a class="text-xs underline text-sand-600" target="_blank" rel="noopener" href="${esc(s.link)}">link</a>` : ''}
+          <button class="text-xs text-navy-600 underline ml-auto" data-act="editStop" data-day="${i}" data-id="${s.id}">${locked ? 'Rate' : 'Edit'}</button></div>
+          ${s.notes ? `<div class="text-sm text-navy-600">${esc(s.notes)}</div>` : ''}${s.actualNotes ? `<div class="text-sm italic text-sand-600">Actual: ${esc(s.actualNotes)}</div>` : ''}
+          ${linkedLines(t, s)}
+          <div class="mt-1 flex flex-wrap items-center gap-2">${(s.menuImages || []).length ? `<button class="badge bg-sand-100 text-sand-600" data-act="openMenu" data-day="${i}" data-id="${s.id}">🍽️ Menu (${s.menuImages.length})</button>` : '<span class="text-xs text-navy-600">No menu yet</span>'}${s.rating ? stars(s.rating) : ''}</div></div></div>`).join('')}</div>`).join('')
+      || '<div class="card p-6 text-center text-navy-600">No food places yet. Add a stop of type Dining, or use + Food place. It shows in the Itinerary too.</div>');
+}
+function foodAddModal(t) {
+  openModal(`<h2 class="font-serif text-xl font-bold">Add a food place</h2><form>
+    <label class="lbl">Which day?</label><select class="inp" name="day">${t.days.map((d, i) => `<option value="${i}">Day ${i + 1} · ${fmtDate(d.date)}</option>`).join('')}</select>
+    <p class="text-xs text-navy-600 mt-2">Next you fill in the place. It is a Dining stop, so it appears here and in the Itinerary.</p>${modalFoot()}</form>`,
+    fd => { const di = +fd.get('day'); closeModal(); stopModal(t, di, null, 'dining'); return false; });
 }
 
 function bookingsTab(t, locked) {
@@ -493,7 +515,7 @@ function shrink(file, max = 1600) {
   });
 }
 /* Cache API copy so menus open at the restaurant with no signal. Per device; silently skipped if unavailable. */
-async function cachePut(id, blob) { try { await (await caches.open(MENU_CACHE)).put('vg-menu/' + id, new Response(blob, { headers: { 'Content-Type': 'image/jpeg' } })); } catch (e) {} }
+async function cachePut(id, blob) { try { await (await caches.open(MENU_CACHE)).put('vg-menu/' + id, new Response(blob, { headers: { 'Content-Type': blob.type || 'image/jpeg' } })); } catch (e) {} }
 async function cacheGet(id) { try { const r = await (await caches.open(MENU_CACHE)).match('vg-menu/' + id); return r ? await r.blob() : null; } catch (e) { return null; } }
 async function cacheDel(id) { try { await (await caches.open(MENU_CACHE)).delete('vg-menu/' + id); } catch (e) {} }
 async function menuFolder(force) {
@@ -508,11 +530,11 @@ async function menuFolder(force) {
   }
   D.menuFolderId = id; return id;
 }
-async function uploadMenu(blob, name) {
+async function uploadMenu(blob, name, mime = 'image/jpeg') {
   for (let attempt = 0; ; attempt++) {
     const folder = await menuFolder(attempt > 0);
-    const bd = 'vg' + uid(), meta = JSON.stringify({ name, mimeType: 'image/jpeg', parents: [folder] });
-    const body = new Blob([`--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${bd}\r\nContent-Type: image/jpeg\r\n\r\n`, blob, `\r\n--${bd}--`]);
+    const bd = 'vg' + uid(), meta = JSON.stringify({ name, mimeType: mime, parents: [folder] });
+    const body = new Blob([`--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${bd}\r\nContent-Type: ${mime}\r\n\r\n`, blob, `\r\n--${bd}--`]);
     try {
       const j = await (await drive('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + bd }, body })).json();
       if (!j.id) throw new Error('Upload returned no file id');
@@ -524,36 +546,43 @@ async function trashMenu(id) {   // Drive trash, not permanent delete
   try { await drive(`https://www.googleapis.com/drive/v3/files/${id}?fields=id`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) }); }
   catch (e) { if (!/^Drive 404/.test(e.message)) throw e; }
 }
-async function menuBlob(id) {
+async function menuBlob(id, mime) {
   const c = await cacheGet(id); if (c) return c;
-  const b = await (await drive(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).blob();
+  const r = await (await drive(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).blob();
+  const b = new Blob([r], { type: mime || 'image/jpeg' });
   await cachePut(id, b); return b;
 }
-async function addMenu(t, s, file) {
-  const blob = await shrink(file), n = (s.menuImages || []).length + 1;
-  const name = safeName(`${t.name} - ${s.title} - menu ${n}`) + '.jpg';
-  const fileId = await uploadMenu(blob, name);
-  (s.menuImages = s.menuImages || []).push({ fileId, name }); await cachePut(fileId, blob); commit();   // commit per photo so a cut-off upload keeps what finished
+const PDF_MAX = 20 * 1024 * 1024;
+const isPdf = f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+async function addMenu(t, s, file) {   // s.menuImages holds photos and PDFs: [{ fileId, name, mime }]
+  const n = (s.menuImages || []).length + 1, base = safeName(`${t.name} - ${s.title} - menu ${n}`);
+  let blob, name, mime;
+  if (isPdf(file)) {
+    if (file.size > PDF_MAX) throw new Error(`${file.name} is ${(file.size / 1048576).toFixed(0)} MB. PDFs over 20 MB are not accepted; compress it first.`);
+    blob = file.type === 'application/pdf' ? file : new Blob([file], { type: 'application/pdf' }); name = base + '.pdf'; mime = 'application/pdf';
+  } else { blob = await shrink(file); name = base + '.jpg'; mime = 'image/jpeg'; }
+  const fileId = await uploadMenu(blob, name, mime);
+  (s.menuImages = s.menuImages || []).push({ fileId, name, mime }); await cachePut(fileId, blob); commit();   // commit per file so a cut-off upload keeps what finished
 }
 /* Stop modal section: list, add, remove. Repaints only #menuBox so typed edits in the form survive. */
 function menuUI(t, s, canAdd, isNew) {
   const box = $('#menuBox'); if (!box) return;
   const imgs = s.menuImages || [];
-  box.innerHTML = (imgs.map(m => `<div class="flex justify-between items-center text-sm py-0.5"><span class="truncate">🍽️ ${esc(m.name)}</span>${canAdd ? `<button type="button" class="text-xs underline text-red-700 ml-2" data-rm="${m.fileId}">Remove</button>` : ''}</div>`).join('')
-    || `<div class="text-xs text-navy-600">${isNew ? 'Save the stop first, then edit it to add menu photos.' : 'No menu photos.'}</div>`)
-    + (canAdd ? '<input type="file" accept="image/*" multiple id="menuFile" class="text-sm mt-2 block">' : '')
+  box.innerHTML = (imgs.map(m => `<div class="flex justify-between items-center text-sm py-0.5"><span class="truncate">${m.mime === 'application/pdf' ? '📄' : '🍽️'} ${esc(m.name)}</span>${canAdd ? `<button type="button" class="text-xs underline text-red-700 ml-2" data-rm="${m.fileId}">Remove</button>` : ''}</div>`).join('')
+    || `<div class="text-xs text-navy-600">${isNew ? 'Save the stop first, then edit it to add menus.' : 'No menus yet.'}</div>`)
+    + (canAdd ? '<input type="file" accept="image/*,application/pdf,.pdf" multiple id="menuFile" class="text-sm mt-2 block"><p class="text-xs text-navy-600 mt-1">Photos or PDFs. Photos are shrunk; PDFs go up as they are (max 20 MB).</p>' : '')
     + '<p id="menuMsg" class="text-xs text-navy-600 mt-1"></p>';
   const msg = m => { const el = $('#menuMsg'); if (el) el.textContent = m; };
   const fi = $('#menuFile');
   if (fi) fi.onchange = async () => {
     const files = [...fi.files]; if (!files.length) return;
     fi.disabled = true; let note = '', done = 0;
-    try { for (const f of files) { msg(`Uploading ${done + 1} of ${files.length}…`); await addMenu(t, s, f); done++; } note = `Saved ${done} photo${done > 1 ? 's' : ''} to Drive.`; }
+    try { for (const f of files) { msg(`Uploading ${done + 1} of ${files.length}…`); await addMenu(t, s, f); done++; } note = `Saved ${done} file${done > 1 ? 's' : ''} to Drive.`; }
     catch (e) { note = (done ? `Saved ${done}, then stopped: ` : '') + menuErr(e); }
     menuUI(t, s, canAdd, isNew); msg(note);
   };
   box.querySelectorAll('[data-rm]').forEach(btn => btn.onclick = async () => {
-    if (!confirm('Move this menu photo to your Drive trash?')) return;
+    if (!confirm('Move this menu file to your Drive trash?')) return;
     msg('Removing…');
     try { await trashMenu(btn.dataset.rm); s.menuImages = s.menuImages.filter(m => m.fileId !== btn.dataset.rm); await cacheDel(btn.dataset.rm); commit(); menuUI(t, s, canAdd, isNew); msg('Removed.'); }
     catch (e) { msg(menuErr(e)); }
@@ -562,14 +591,17 @@ function menuUI(t, s, canAdd, isNew) {
 /* Gallery from the itinerary row. Cached copies open without Drive; otherwise it fetches with the token. */
 async function menuGallery(t, di, id) {
   const s = t.days[di].stops.find(x => x.id === id), imgs = s.menuImages || [];
-  openModal(`<h2 class="font-serif text-xl font-bold">🍽️ ${esc(s.title)}</h2><p class="text-xs text-navy-600">Tap a photo to open it full size.</p>
+  openModal(`<h2 class="font-serif text-xl font-bold">🍽️ ${esc(s.title)}</h2><p class="text-xs text-navy-600">Tap a photo or PDF to open it full size.</p>
     <div class="grid gap-3 mt-3 max-h-[70vh] overflow-y-auto">${imgs.map(m => `<div data-gid="${m.fileId}" class="text-sm text-navy-600 py-6 text-center">Loading…</div>`).join('')}</div>
     <div class="flex justify-end mt-4"><button class="btn btn-sand" onclick="closeModal()">Close</button></div>`);
   await Promise.all(imgs.map(async m => {
     try {
-      const blob = await menuBlob(m.fileId), box = $(`[data-gid="${m.fileId}"]`); if (!box) return;
+      const blob = await menuBlob(m.fileId, m.mime), box = $(`[data-gid="${m.fileId}"]`); if (!box) return;
       const url = URL.createObjectURL(blob); blobUrls.push(url);
-      box.className = ''; box.innerHTML = `<a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${esc(m.name)}" class="w-full rounded-lg border border-sand-200"></a>`;
+      box.className = '';
+      box.innerHTML = m.mime === 'application/pdf'
+        ? `<a href="${url}" target="_blank" rel="noopener" class="btn btn-sand block text-center">📄 Open PDF · ${esc(m.name)}</a>`
+        : `<a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${esc(m.name)}" class="w-full rounded-lg border border-sand-200"></a>`;
     } catch (e) { const box = $(`[data-gid="${m.fileId}"]`); if (box) box.textContent = menuErr(e); }
   }));
 }
@@ -590,6 +622,7 @@ document.addEventListener('click', e => {
   if (a === 'editTrip') return editTripModal(t);
   if (a === 'addStop') return stopModal(t, +el.dataset.day, null);
   if (a === 'editStop') return stopModal(t, +el.dataset.day, el.dataset.id);
+  if (a === 'addFood') return foodAddModal(t);
   if (a === 'openMenu') return menuGallery(t, +el.dataset.day, el.dataset.id);
   if (a === 'addBooking') return bookingModal(t, null);
   if (a === 'editBooking') return bookingModal(t, el.dataset.id);
@@ -634,9 +667,9 @@ function editTripModal(t) {
   $('#delTrip').onclick = () => { if (confirm(`Delete "${t.name}"? This cannot be undone.`)) { D.trips = D.trips.filter(x => x.id !== t.id); view = { page: 'list', tripId: null, tab: 'itinerary' }; closeModal(); commit(); } };
 }
 
-function stopModal(t, di, id) {
+function stopModal(t, di, id, preset) {
   const locked = t.status === 'locked';
-  const s = id ? t.days[di].stops.find(x => x.id === id) : { type: 'activity', time: '', endTime: '', title: '', notes: '', cost: null, link: '', rating: 0, actualNotes: '', bookingIds: [] };
+  const s = id ? t.days[di].stops.find(x => x.id === id) : { type: preset || 'activity', time: '', endTime: '', title: '', notes: '', cost: null, link: '', rating: 0, actualNotes: '', bookingIds: [] };
   let rating = s.rating || 0;
   const ro = locked ? 'disabled' : '';
   openModal(`<h2 class="font-serif text-xl font-bold">${locked ? 'Rate: ' + esc(s.title) : id ? 'Edit stop' : 'Add stop'} <span class="text-sm font-sans text-navy-600">Day ${di + 1}</span></h2><form>
@@ -646,7 +679,7 @@ function stopModal(t, di, id) {
     ${field('Link', 'link', s.link, 'url', ro)}
     <p class="text-xs text-navy-600 mt-1">Spend is extra money on the day. Prepaid costs live under Bookings. Enter 0 if there is nothing extra.</p>
     <label class="lbl">Linked bookings</label><div class="border border-sand-200 rounded-lg p-2 max-h-32 overflow-y-auto bg-sand-50">${t.bookings.length ? t.bookings.map(bk => `<label class="flex items-center gap-2 text-sm py-0.5"><input type="checkbox" name="bk" value="${bk.id}" ${(s.bookingIds || []).includes(bk.id) ? 'checked' : ''} ${ro}> ${CATS[bk.category || 'other'][0]} ${esc(bk.title)}</label>`).join('') : '<span class="text-xs text-navy-600">No bookings yet.</span>'}</div>
-    <label class="lbl">Menu photos</label><div id="menuBox" class="border border-sand-200 rounded-lg p-2 bg-sand-50"></div>
+    <label class="lbl">Menus (photos or PDF)</label><div id="menuBox" class="border border-sand-200 rounded-lg p-2 bg-sand-50"></div>
     <label class="lbl">Notes</label><textarea class="inp" name="notes" rows="2" ${ro}>${esc(s.notes)}</textarea>
     <label class="lbl">Rating</label><div id="starBox">${stars(rating, true)}</div>
     <label class="lbl">Actuals notes</label><textarea class="inp" name="actualNotes" rows="2">${esc(s.actualNotes)}</textarea>
