@@ -329,6 +329,7 @@ function tripView(t) {
       ${t.status === 'active' ? '<button class="btn btn-sand" data-act="backToPlanning">Back to planning</button>' : ''}
       ${t.status !== 'locked' ? '<button class="btn btn-primary" data-act="lockTrip">Lock trip</button>' : '<button class="btn btn-primary" data-act="ratings">Ratings pass</button>'}
       ${!locked ? '<button class="btn btn-sand" data-act="editTrip">Edit</button>' : ''}
+      <button class="btn btn-sand" data-act="exportPdf">⬇ Export PDF</button>
     </div></div>
   ${locked ? `<div class="card p-3 mb-4 bg-sand-100 text-sm">🔒 Locked ${t.lockedAt ? fmtShort(t.lockedAt.slice(0, 10)) : ''}. Itinerary and bookings are read-only; ratings and actuals notes stay editable. Use this trip as a skeleton for the next one.</div>` : ''}
   <div class="flex gap-1 border-b border-sand-200 mb-4">${tabs.map(([k, l]) => `<button data-act="tab" data-tab="${k}" class="px-4 py-2 text-sm font-medium ${view.tab === k ? 'border-b-2 border-navy-900 text-navy-900' : 'text-navy-600'}">${l}</button>`).join('')}</div>
@@ -717,13 +718,102 @@ async function menuGallery(t, di, id) {
   }));
 }
 
+/* ===== PDF export (jsPDF + autotable, loaded from cdnjs on first use) ===== */
+const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load the PDF library. Check your connection and try again.')); document.head.appendChild(s); });
+async function loadPdfLibs() {
+  if (!(window.jspdf && window.jspdf.jsPDF)) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  if (!window.jspdf.jsPDF.API.autoTable) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+  return window.jspdf.jsPDF;
+}
+/* jsPDF's built-in fonts only cover Latin-1, so swap common symbols and drop emoji. */
+const pdfTxt = s => String(s ?? '').replace(/[→➜]/g, '->').replace(/[–—]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[•]/g, '-').replace(/…/g, '...')
+  .replace(/[^\x09\x0A\x20-\x7E -ÿ]/g, '').replace(/[ \t]+\n/g, '\n').trim();
+function buildTripPdf(JsPDF, t) {
+  const doc = new JsPDF({ unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 40, NAVY = [15, 27, 45], SAND = [243, 234, 217];
+  let y = M;
+  const text = (s, size, bold, color = [60, 70, 90]) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(...color);
+    doc.splitTextToSize(pdfTxt(s), W - 2 * M).forEach(l => { if (y > H - M) { doc.addPage(); y = M; } doc.text(l, M, y); y += size + 4; });
+  };
+  const heading = s => { if (y > H - 130) { doc.addPage(); y = M; } y += 6; text(s, 14, true, NAVY); y += 2; };
+  const table = o => {
+    doc.autoTable({ startY: y, margin: { left: M, right: M }, theme: 'grid', styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 3, textColor: NAVY, lineColor: [232, 217, 187] },
+      headStyles: { fillColor: SAND, textColor: NAVY, fontStyle: 'bold' }, ...o });
+    y = doc.lastAutoTable.finalY + 14;
+  };
+  text(t.name, 22, true, NAVY); y += 2;
+  text(`${t.destination} | ${fmtDate(t.start)} to ${fmtDate(t.end)}`, 10);
+  text('Travellers: ' + (t.travellers || []).join(', '), 10);
+  text(`Status: ${STATUS[t.status][0]} | Exported ${new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 9);
+  if (t.notes) { y += 2; text(t.notes, 9); }
+  y += 8;
+
+  t.days.forEach((d, i) => {
+    const stops = [...d.stops].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+    const rows = stops.map(s => {
+      const det = [];
+      if (s.notes) det.push(s.notes);
+      (s.bookingIds || []).map(id => t.bookings.find(b => b.id === id)).filter(Boolean).forEach(b => {
+        const bits = [b.confirmation && 'Ref ' + b.confirmation, b.seats && 'Seats ' + b.seats].filter(Boolean).join(', ');
+        det.push(`Booking: ${b.title}${bits ? ' (' + bits + ')' : ''}${b.booked ? '' : ' - NOT BOOKED YET'}`);
+      });
+      if (s.cost) det.push('On-the-day spend ' + money(s.cost));
+      if (s.actualNotes) det.push('Actual: ' + s.actualNotes);
+      if ((s.menuImages || []).length) det.push('Menu saved in the app');
+      return [pdfTxt((s.time || '') + (s.endTime ? ' - ' + s.endTime : '')), pdfTxt((TYPES[s.type] || TYPES.activity)[1]), pdfTxt(s.title), pdfTxt(det.join('\n'))];
+    });
+    table({
+      head: [[{ content: pdfTxt(`Day ${i + 1} | ${fmtDate(d.date)}${d.title ? ' | ' + d.title : ''}`), colSpan: 4, styles: { fillColor: NAVY, textColor: [243, 234, 217], fontSize: 10 } }], ['Time', 'Type', 'Stop', 'Details']],
+      body: rows.length ? rows : [[{ content: 'Nothing planned yet.', colSpan: 4 }]],
+      columnStyles: { 0: { cellWidth: 62 }, 1: { cellWidth: 58 }, 2: { cellWidth: 175 } }
+    });
+  });
+
+  heading('Bookings');
+  const bTotal = t.bookings.reduce((s, b) => s + (Number(b.cost) || 0), 0);
+  table({
+    head: [['Booking', 'Reference', 'Via / carrier', 'Pax', 'Cost', 'Status']],
+    body: t.bookings.map(b => [pdfTxt(b.title + (b.seats ? '\nSeats ' + b.seats : '')), pdfTxt(b.confirmation || ''), pdfTxt([b.bookedVia, b.carrier].filter(Boolean).join(' / ')), b.pax || '', b.cost != null ? money(b.cost) : '', b.booked ? 'Booked' : 'NOT BOOKED']),
+    foot: [[{ content: 'Total of recorded costs', colSpan: 4, styles: { halign: 'right' } }, money(bTotal), '']], footStyles: { fillColor: SAND, textColor: NAVY, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 190 }, 3: { cellWidth: 30 }, 4: { cellWidth: 60 } }
+  });
+
+  if ((t.checklist || []).length) {
+    heading('Checklist');
+    table({ head: [['Group', 'To do', 'Due', 'Done']], body: t.checklist.map(c => [pdfTxt(c.group || ''), pdfTxt(c.text), c.due ? fmtShort(c.due) : '', c.done ? 'Done' : 'To do']), columnStyles: { 0: { cellWidth: 80 }, 2: { cellWidth: 60 }, 3: { cellWidth: 50 } } });
+  }
+
+  const n = doc.getNumberOfPages();
+  for (let p = 1; p <= n; p++) {
+    doc.setPage(p); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+    doc.text(pdfTxt(`VacationGuru | ${t.name} | Page ${p} of ${n}`), W / 2, H - 18, { align: 'center' });
+  }
+  return doc;
+}
+async function exportPdf(t, btn) {
+  const label = btn ? btn.textContent : '';
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = 'Making PDF…'; }
+    const doc = buildTripPdf(await loadPdfLibs(), t);
+    const name = (t.name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'trip') + '.pdf';
+    const file = new File([doc.output('blob')], name, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {   // phones: share sheet (Save to Files, WhatsApp, Mail…)
+      try { await navigator.share({ files: [file], title: t.name }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    doc.save(name);
+  } catch (e) { alert('PDF export failed: ' + e.message); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = label; } }
+}
+
 /* ===== Actions ===== */
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
   const a = el.dataset.act, t = view.tripId ? trip() : null;
   if (a === 'newTrip') return newTripModal();
   if (a === 'importTrip') return importModal();
-  if (a === 'openTrip') { view = { page: 'trip', tripId: el.dataset.id, tab: 'itinerary' }; return render(); }
+  if (a === 'openTrip') { view = { page: 'trip', tripId: el.dataset.id, tab: 'itinerary' }; loadPdfLibs().catch(() => {}); return render(); }
+  if (a === 'exportPdf') return exportPdf(t, el);
   if (a === 'back') { view = { page: 'list', tripId: null, tab: 'itinerary' }; return render(); }
   if (a === 'tab') { view.tab = el.dataset.tab; return render(); }
   if (a === 'startTrip') { t.status = 'active'; return commit(); }
