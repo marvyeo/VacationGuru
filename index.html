@@ -727,7 +727,7 @@ async function loadPdfLibs() {
 }
 /* jsPDF's built-in fonts only cover Latin-1, so swap common symbols and drop emoji. */
 const pdfTxt = s => String(s ?? '').replace(/[→➜]/g, '->').replace(/[–—]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[•]/g, '-').replace(/…/g, '...')
-  .replace(/[^\x09\x0A\x20-\x7E -ÿ]/g, '').replace(/[ \t]+\n/g, '\n').trim();
+  .replace(/[^\x09\x0A\x20-\x7E -ÿ]/g, '').replace(/ {2,}/g, ' ').replace(/[ \t]+\n/g, '\n').trim();
 function buildTripPdf(JsPDF, t) {
   const doc = new JsPDF({ unit: 'pt', format: 'a4' });
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 40, NAVY = [15, 27, 45], SAND = [243, 234, 217];
