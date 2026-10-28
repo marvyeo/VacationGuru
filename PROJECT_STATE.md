@@ -1,7 +1,7 @@
 # VacationGuru — Project State
 
-> **Next chat name: `VacationGuru ver 5`**
-> Claude: your FIRST reply in a new chat must start with "Rename this chat to: **VacationGuru ver 5**" (you can't rename chats yourself). In your first commit this session, bump the number here by 1.
+> **Next chat name: `VacationGuru ver 6`**
+> Claude: your FIRST reply in a new chat must start with "Rename this chat to: **VacationGuru ver 6**" (you can't rename chats yourself). In your first commit this session, bump the number here by 1.
 
 **State version:** 3 (ver 1 written 2026-10-20 in "Life Plan Roadmap ver 2"; moved into the repo 2026-10-22 by "Life Plan Roadmap ver 3")
 **Where this lives:** `PROJECT_STATE.md` in the repo. New chats `git pull` and read it; no uploads needed.
@@ -67,6 +67,7 @@ A single-file trip planner (vanilla JS, Tailwind CDN, Playfair Display and Inter
 - **Food tab (2026-10-24):** its own tab between Itinerary and Bookings, listing every Dining stop grouped by day (time, notes, link, linked bookings, spend, rating, menu button). It is a view over the same stop objects, so an edit in the Food tab or the Itinerary shows in both. "+ Food place" asks for a day, then opens the stop form preset to Dining.
 - **PDF menus (2026-10-24):** the Menus section accepts photos and PDFs together. PDFs upload unchanged (max 20 MB), show as "📄 Open PDF" in the gallery (opens in a new tab), and are cached per device like photos. `menuImages` entries now carry `mime`; older entries without it are treated as JPEG.
 - **Cross-tab links (2026-10-24, data v3):** one booked/paid flag is shown everywhere. A checklist item can link to a booking (`item.bookingId`): ticking it marks the booking booked/paid and ticking the booking ticks the item (the item's checkbox does not change a locked trip's bookings). Stops linked to an unbooked booking show "⚠ not booked yet" in the Itinerary and Food tabs. Each booking lists where it is used (stops and checklist items). A linked item whose state disagrees with its booking shows an amber "Booking is marked paid / not paid" badge until either is toggled. Deleting a booking removes its links. Summary has a Progress card (bookings booked, checklist done, food places with a menu). Import JSON checklist items accept an optional `booking` (words from a booking title). `migrate3()` linked existing "Pay X" items to bookings without changing any flags.
+- **Safe two-way sync (2026-10-28, ver 5):** one `syncNow()` routine reads Drive, compares `updatedAt` with the last agreed version (`vacationguru-sync-meta`), and adopts, pushes or does nothing. Untouched seed data (`D.seed`, `updatedAt: 0`) never pushes and always loses to Drive (an edited seed is saved to backup first). If both sides changed, the newer wins and the other is kept in `vacationguru-backup` (header link "↩ Backup" restores it). Runs after every save, on open, every 45 s while visible, on tab focus and when back online. After the first connect, the next tap anywhere re-opens sign-in (browsers only allow it from a tap). A banner warns about in-app browsers (WhatsApp, Gmail…) where Google blocks sign-in. Scope is now full `drive` so Caroline's account can open the file Marvin shares; the file id is found by name (newest first) and remembered.
 - **Icon:** suitcase glyph in the ecosystem icon set (`marvyeo/LifePlan/design/make_icons.py`).
 
 ## 2. Current Facts (updated 2026-10-22)
@@ -84,6 +85,8 @@ A single-file trip planner (vanilla JS, Tailwind CDN, Playfair Display and Inter
 | Menu photos | ✅ Built 2026-10-24. Logic tested in Node with a mocked Drive (folder find/create, upload body, stale-folder retry, trash, 401). ❌ **Not yet tried in a real browser or against real Drive.** Image resize, the file picker on iPhone, and the offline cache are untested. |
 | Food tab and PDF menus | ✅ Built 2026-10-24. Food tab rendered in Node against `imports/perth-2026.json` (16 dining stops → 16 rows). PDF upload tested with mocked Drive. ❌ Not in a browser. ❌ Drive's multipart upload is documented for files up to ~5 MB; larger PDFs (up to the 20 MB cap) are untested and may need the resumable upload API. |
 | Cross-tab links | ✅ Built 2026-10-24; migration, two-way sync, locked-trip guard and import linking tested in Node. ❌ Not in a browser. Perth: the seed marks every booking booked, but the checklist items "Pay Rottnest ferry" and "Pay Jewel Cave" are unticked, so both show the amber mismatch badge until Marvin ticks one side. Marvin should decide which is true (unpaid in the Klook app?). |
+| Multi-device sync | ✅ Built 2026-10-28 (ver 5). Merge logic tested in Node against a mock Drive (11 cases: fresh phone, seed edits, conflicts both ways, shared file, stale id, backup restore). ❌ Not in a real browser or with a second Google account yet. Cause of the phone bug: the phone never connected to Drive, so it showed the seed; and a fresh seed stamped "now" would have overwritten Drive. |
+| Caroline access | ⏳ Needs Marvin: (1) Google Cloud Console → OAuth consent screen: add scope `.../auth/drive` and add Caroline's Gmail as a test user; (2) share `vacationguru-data.json` AND the `VacationGuru Menus` folder with her as Editor (Claude can do this via Drive once given her address); (3) she opens the app in Safari/Chrome and taps Connect Drive. Testing-mode consent expires after 7 days, so she may be asked to sign in again. |
 | Perth import | ✅ Marvin confirmed `imports/perth-2026.json` was imported into the app (2026-10-24). |
 | Ecosystem lessons | ✅ Already in the code: direct Drive `fetch()`, `res.ok` checks, 401 reconnect. ❌ Not yet: PWA files (`manifest.json`, `sw.js`, icons), iPhone redirect sign-in fallback, multi-device merge. |
 | Seed data | Perth & Margaret River, 2–8 Nov 2026, 7 days. Travellers: Marvin, Caroline, Cobae (toddler) and a guest adult. |
@@ -140,6 +143,7 @@ Don't deploy VacationGuru for Perth; the trip is fully settled outside the app. 
 
 ## 6. Change Log
 
+- **ver 5 (2026-10-28):** Phone showed old seed data because it never synced. Rewrote sync (see Features, safe two-way sync), full `drive` scope for a shared file, in-app browser warning. Tested in Node with mock Drive only. Next chat name bumped to ver 6. PDF export follows in the next entry.
 - **ver 1 (2026-10-20):** Initial state file. Recorded that the app was never deployed, the Perth booking reference, and the hold decision. Perth confirmed settled.
 - **ver 2 (2026-10-22):** moved into the new `marvyeo/VacationGuru` repo; added Session Rules and `CLAUDE.md`; PWA checklist added to the resume steps.
 - **ver 3 (2026-10-23):** Marvin enabled GitHub Pages and finished the Google OAuth setup. Recorded both. `index.html` is still not in the repo (it was never found), so it is the next blocker. Next chat name bumped to ver 4.

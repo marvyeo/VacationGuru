@@ -35,16 +35,17 @@ tailwind.config = { theme: { extend: {
 <header class="bg-navy-900 text-sand-100">
   <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
     <a href="#" id="home" class="font-serif text-2xl font-bold tracking-wide">Vacation<span class="text-sand-400">Guru</span></a>
-    <div class="flex items-center gap-3"><span id="syncMsg" class="text-xs text-sand-200"></span><button id="syncBtn" class="btn btn-sand">Connect Drive</button></div>
+    <div class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1"><span id="syncMsg" class="text-xs text-sand-200"></span><button id="bakBtn" class="hidden text-xs underline text-sand-200">↩ Backup</button><button id="syncBtn" class="btn btn-sand">Connect Drive</button></div>
   </div>
 </header>
+<div id="warn" class="hidden bg-amber-100 text-amber-900 text-sm px-4 py-2 text-center">Google sign-in is blocked inside in-app browsers (WhatsApp, Gmail, Instagram…). Open this page in Safari or Chrome.</div>
 <main id="app" class="max-w-4xl mx-auto px-4 py-6"></main>
 <div id="modal" class="hidden fixed inset-0 bg-navy-900/60 z-50 overflow-y-auto"><div class="min-h-full flex items-start justify-center p-4"><div id="modalBox" class="card w-full max-w-lg p-5 mt-8"></div></div></div>
 
 <script>
 /* ===== Config ===== */
 const CLIENT_ID = '669494100250-gvromuq72r7j0djmkd4vdbdq5damncj7.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const SCOPE = 'https://www.googleapis.com/auth/drive';   // full Drive scope so a second Google account can open a file shared with it
 const FILE_NAME = 'vacationguru-data.json';
 const LS_KEY = 'vacationguru-data-v1';
 const TYPES = { accommodation: ['🛏️', 'Stay'], dining: ['🍽️', 'Dining'], activity: ['🎟️', 'Activity'], transport: ['✈️', 'Transport'], booking: ['📌', 'Booking'], shopping: ['🛍️', 'Shopping'], rest: ['😴', 'Rest'] };
@@ -118,7 +119,7 @@ let token = null, fileId = null, tokenClient = null, syncTimer = null;
 
 function load() {
   try { const r = JSON.parse(localStorage.getItem(LS_KEY)); if (r && Array.isArray(r.trips)) return migrate(r); } catch (e) {}
-  const d = { version: 1, trips: [seedPerth()], upcoming: [], updatedAt: Date.now() };
+  const d = { version: 1, trips: [seedPerth()], upcoming: [], updatedAt: 0, seed: true };   // seed = never synced; Drive data always wins over it
   migrate(d); d.upcoming = computeUpcoming(d); return d;
 }
 const trip = () => D.trips.find(t => t.id === view.tripId);
@@ -143,63 +144,137 @@ function commit() {
   render(); scheduleSync();
 }
 
-/* ===== Drive sync: direct fetch, res.ok checks, 401 reconnect ===== */
-function setSync(status, msg) { sync = { status, msg }; $('#syncMsg').textContent = msg || ''; $('#syncBtn').textContent = status === 'off' ? 'Connect Drive' : status === 'reconnect' || status === 'error' ? 'Reconnect' : 'Sync now'; }
+/* ===== Drive sync: direct fetch, res.ok checks, 401 reconnect, safe two-way merge ===== */
+const META_KEY = 'vacationguru-sync-meta', FILE_KEY = 'vacationguru-file-id', CONN_KEY = 'vacationguru-connected', BAK_KEY = 'vacationguru-backup';
+const hhmm = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+const getMeta = () => { try { return JSON.parse(lsGet(META_KEY)) || { syncedAt: 0 }; } catch (e) { return { syncedAt: 0 }; } };
+const setMeta = at => lsSet(META_KEY, JSON.stringify({ syncedAt: at }));
+const modalOpen = () => !$('#modal').classList.contains('hidden');
+
+function setSync(status, msg) {
+  sync = { status, msg }; $('#syncMsg').textContent = msg || '';
+  $('#syncBtn').textContent = status === 'off' ? 'Connect Drive' : status === 'reconnect' || status === 'error' ? 'Reconnect' : status === 'nofile' ? 'Retry' : 'Sync now';
+  $('#bakBtn').classList.toggle('hidden', !lsGet(BAK_KEY));
+}
 async function drive(url, opts = {}) {
   if (!token) throw new Error('Not connected');
   const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } });
-  if (r.status === 401) { token = null; setSync('reconnect', 'Session expired — reconnect'); throw new Error('401'); }
+  if (r.status === 401) { token = null; setSync('reconnect', 'Session expired. Tap to reconnect'); armTapConnect(); throw new Error('401'); }
   if (!r.ok) throw new Error('Drive ' + r.status + ': ' + (await r.text()).slice(0, 120));
   return r;
 }
+function forgetFile() { fileId = null; lsDel(FILE_KEY); }
+/* Finds the data file. Remembers the id once found. With the full Drive scope this also finds a file another Google account shared with this one. */
 async function findFile() {
+  const saved = lsGet(FILE_KEY);
+  if (saved) {
+    try { const m = await (await drive(`https://www.googleapis.com/drive/v3/files/${saved}?fields=id,trashed`)).json(); if (m.id && !m.trashed) return m.id; }
+    catch (e) { if (e.message === '401') throw e; }
+    lsDel(FILE_KEY);
+  }
   const q = encodeURIComponent(`name='${FILE_NAME}' and trashed=false`);
-  const j = await (await drive(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id)`)).json();
-  return (j.files && j.files[0]) ? j.files[0].id : null;
+  const j = await (await drive(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&orderBy=modifiedTime%20desc&fields=files(id,ownedByMe,modifiedTime)`)).json();
+  const id = (j.files && j.files[0]) ? j.files[0].id : null;
+  if (id) lsSet(FILE_KEY, id);
+  return id;
+}
+async function readRemote() {
+  for (let tries = 0; tries < 2; tries++) {
+    if (!fileId) fileId = await findFile();
+    if (!fileId) return null;
+    try { return await (await drive(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`)).json(); }
+    catch (e) { if (/^Drive 404/.test(e.message)) { forgetFile(); continue; } throw e; }
+  }
+  return null;
 }
 async function push() {
-  const body = JSON.stringify(D);
+  const at = D.updatedAt || 0, body = JSON.stringify(D);
   if (!fileId) {
     const bd = 'vg' + uid();
     const mp = `--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name: FILE_NAME, mimeType: 'application/json' })}\r\n--${bd}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${bd}--`;
     const j = await (await drive('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + bd }, body: mp })).json();
     if (!j.id) throw new Error('Create returned no file id');
-    fileId = j.id;
+    fileId = j.id; lsSet(FILE_KEY, fileId);
   } else {
     await drive(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
   }
+  setMeta(at);
 }
-async function initialSync() {
+function adopt(remote) {
+  D = migrate(remote); delete D.seed; D.upcoming = computeUpcoming(D);
+  lsSet(LS_KEY, JSON.stringify(D)); setMeta(D.updatedAt || 0); render();
+}
+function saveBackup(obj) { lsSet(BAK_KEY, JSON.stringify({ at: Date.now(), data: obj })); }
+function restoreBackup() {
+  let b; try { b = JSON.parse(lsGet(BAK_KEY)); } catch (e) {}
+  if (!b || !b.data) return;
+  if (!confirm('Restore the backup saved ' + new Date(b.at).toLocaleString('en-GB') + '? It replaces what is on this device and then syncs to Drive.')) return;
+  D = migrate(b.data); delete D.seed; lsDel(BAK_KEY); commit(); setSync(sync.status, sync.msg);
+}
+/* One routine for every sync: read Drive, decide who is newer, then adopt, push or do nothing. It never pushes untouched seed data. */
+let syncing = false, syncAgain = false;
+async function syncNow(opts = {}) {
+  if (!token) return;
+  if (syncing) { syncAgain = true; return; }
+  syncing = true;
   try {
-    setSync('busy', 'Syncing…');
-    fileId = await findFile();
-    if (fileId) {
-      const remote = await (await drive(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`)).json();
-      if (remote && Array.isArray(remote.trips) && (remote.updatedAt || 0) > (D.updatedAt || 0)) {
-        D = migrate(remote); D.upcoming = computeUpcoming(D); localStorage.setItem(LS_KEY, JSON.stringify(D)); render();
-      } else await push();
-    } else await push();
-    setSync('ok', 'Synced ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+    if (!opts.quiet) setSync('busy', 'Syncing…');
+    const remote = await readRemote();
+    const ok = !!(remote && Array.isArray(remote.trips)), rUp = ok ? (remote.updatedAt || 0) : 0;
+    const lUp = D.updatedAt || 0, m = getMeta();
+    const dirty = !D.seed && lUp > m.syncedAt, remoteNew = rUp > m.syncedAt;
+    let msg = 'Synced ' + hhmm();
+    if (!ok) {
+      if (D.seed) { setSync('nofile', 'No itinerary file found for this Google account. Ask the owner to share it'); return; }
+      await push(); msg = 'Saved ' + hhmm();
+    } else if (D.seed) {
+      if (lUp > 0) saveBackup(D);
+      adopt(remote); msg = 'Loaded from Drive ' + hhmm();
+    } else if (rUp === lUp) { setMeta(rUp);
+    } else if (remoteNew && !dirty) { adopt(remote); msg = 'Updated ' + hhmm();
+    } else if (remoteNew && dirty) {
+      if (rUp > lUp) { saveBackup(D); adopt(remote); msg = 'Both changed: kept the newer Drive copy (yours saved as backup)'; }
+      else { saveBackup(remote); await push(); msg = 'Both changed: kept your newer copy (Drive copy saved as backup)'; }
+    } else if (dirty) { await push(); msg = 'Saved ' + hhmm(); }
+    setSync('ok', msg);
   } catch (e) { if (e.message !== '401') setSync('error', 'Sync failed: ' + e.message); }
+  finally { syncing = false; if (syncAgain) { syncAgain = false; setTimeout(() => syncNow({ quiet: true }), 300); } }
 }
 function scheduleSync() {
   if (!token) return;
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(async () => {
-    try { setSync('busy', 'Saving…'); await push(); setSync('ok', 'Saved ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })); }
-    catch (e) { if (e.message !== '401') setSync('error', 'Save failed: ' + e.message); }
-  }, 800);
+  syncTimer = setTimeout(() => syncNow(), 800);
 }
 function connect() {
-  if (!window.google || !google.accounts) { setSync('error', 'Google sign-in still loading — retry'); return; }
+  if (!window.google || !google.accounts) { setSync('error', 'Google sign-in still loading. Retry'); return; }
   if (!tokenClient) tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID, scope: SCOPE,
-    callback: r => { if (r.error || !r.access_token) { setSync('error', 'Sign-in failed: ' + (r.error || 'no token')); return; } token = r.access_token; initialSync(); },
-    error_callback: e => setSync('error', 'Sign-in cancelled')
+    callback: r => { if (r.error || !r.access_token) { setSync('error', 'Sign-in failed: ' + (r.error || 'no token')); return; } token = r.access_token; lsSet(CONN_KEY, '1'); syncNow(); },
+    error_callback: e => setSync('error', e && e.type === 'popup_failed_to_open' ? 'Popup blocked. Allow popups, or open this page in Safari/Chrome' : 'Sign-in cancelled')
   });
   tokenClient.requestAccessToken({ prompt: '' });
 }
-$('#syncBtn').onclick = () => { if (token && sync.status !== 'reconnect') initialSync(); else connect(); };
+/* A browser only lets sign-in open from a tap, so after the first connect the next tap anywhere reconnects. */
+let tapArmed = false;
+function armTapConnect() {
+  if (tapArmed || token || !lsGet(CONN_KEY)) return;
+  tapArmed = true;
+  document.addEventListener('click', e => { tapArmed = false; if (!token && !e.target.closest('#syncBtn')) connect(); }, { once: true });
+}
+$('#syncBtn').onclick = () => { if (token) syncNow(); else connect(); };
+$('#bakBtn').onclick = restoreBackup;
+function bootSync() {
+  if (lsGet(CONN_KEY)) { setSync('reconnect', 'Tap anywhere to sync with Drive'); armTapConnect(); }
+  setInterval(() => { if (token && !document.hidden && !modalOpen()) syncNow({ quiet: true }); }, 45000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) return; if (token) { if (!modalOpen()) syncNow({ quiet: true }); } else armTapConnect(); });
+  window.addEventListener('online', () => { if (token && !modalOpen()) syncNow({ quiet: true }); });
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua);
+  if (/FBAN|FBAV|Instagram|Line\/|MicroMessenger|WhatsApp|Telegram|GSA\/|; wv\)/i.test(ua) || (ios && !/Safari\//.test(ua) && !navigator.standalone))
+    $('#warn').classList.remove('hidden');
+}
 $('#home').onclick = e => { e.preventDefault(); view = { page: 'list', tripId: null, tab: 'itinerary' }; render(); };
 
 /* ===== Modal ===== */
@@ -772,7 +847,7 @@ function ratingsModal(t) {
 }
 
 /* ===== Boot ===== */
-setSync('off', '');
+setSync('off', ''); bootSync();
 render();
 </script>
 </body>
