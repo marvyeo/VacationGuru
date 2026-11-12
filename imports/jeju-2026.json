@@ -1,0 +1,258 @@
+{
+ "format": "vacationguru-trip",
+ "version": 1,
+ "id": "jeju-2026",
+ "name": "Jeju (kids, snow & Japanese food)",
+ "destination": "Jeju Island, South Korea",
+ "start": "2026-12-27",
+ "end": "2026-12-30",
+ "tags": ["toddler", "kid-friendly", "japanese-food", "pokemon", "winter", "chill"],
+ "budgetTier": "$$",
+ "travellers": ["Marvin", "Cobae (toddler, 2.5)"],
+ "notes": "Land 09:30 Sun 27 Dec, fly 19:50 Wed 30 Dec (international from Singapore). One outing a day in the morning, afternoons for naps. Outing A (snow, 1100 Altitude Wetland) is on day 2 and outing B (Hello Kitty Island + Camellia Hill, indoor) is on day 3: swap them if the forecast says so. Snow is a bonus, not the plan; the 1100 and 5.16 roads can close. No Pokemon event is confirmed for these dates: check 9.81 Park around 1 Dec and skip it unless the Pokemon package is confirmed. No child seats in regular taxis: pre-book transfers/charter with a seat. Base: Jeju City (Nohyeong/Shinjeju). K-ETA exemption for Singapore passports runs to 31 Dec 2026. Source doc: Jeju Trip 27-30 Dec 2026 (Claude Docs).",
+ "days": [
+  {
+   "date": "2026-12-27",
+   "title": "Land and settle",
+   "stops": [
+    {
+     "type": "transport",
+     "start": "09:30",
+     "title": "Land at Jeju Airport; immigration and bags",
+     "notes": "Fill in the e-Arrival Card beforehand. Buy a T-money card at the airport CU or 7-Eleven.",
+     "bookings": ["Flight SIN to Jeju"]
+    },
+    {
+     "type": "transport",
+     "start": "11:00",
+     "title": "Private transfer to Jeju City with child seat",
+     "notes": "Regular taxis rarely carry a child seat. Airport bus 100 or 500 is the cheap option (about 30 min) but awkward with bags and a toddler.",
+     "bookings": ["Airport transfer"]
+    },
+    {
+     "type": "dining",
+     "start": "11:30",
+     "title": "Lunch at Uratchacha sushibu (conveyor-belt sushi)",
+     "notes": "11:30-21:30, closed 15:00-17:00. Listed as family-friendly. Backup: Mikadosushi, City Hall.",
+     "link": "https://www.catchtable.net/discovery/koreas-10-best-japanese-restaurants-in-jeju-city.html"
+    },
+    {
+     "type": "accommodation",
+     "start": "13:00",
+     "title": "Check in (or drop bags); toddler nap",
+     "notes": "Ask for early check-in. Hotel still to choose.",
+     "bookings": ["Hotel Jeju City"]
+    },
+    {
+     "type": "rest",
+     "start": "14:00",
+     "title": "Nap and rest at hotel"
+    },
+    {
+     "type": "dining",
+     "start": "17:30",
+     "title": "Early dinner at Yunok Nohyeong (ramen)",
+     "notes": "11:30-20:00; lines at meal times. Backup: Jeongjikhan Sushi (not verified, confirm it is open).",
+     "link": "https://www.catchtable.net/discovery/koreas-10-best-japanese-restaurants-in-jeju-city.html"
+    },
+    {
+     "type": "rest",
+     "start": "19:00",
+     "title": "Back to hotel; early night"
+    }
+   ]
+  },
+  {
+   "date": "2026-12-28",
+   "title": "Outing A: snow morning (swap with day 3 if the forecast says so)",
+   "stops": [
+    {
+     "type": "dining",
+     "start": "08:00",
+     "title": "Breakfast at hotel or nearby cafe"
+    },
+    {
+     "type": "transport",
+     "start": "09:15",
+     "title": "Drive up the 1100 road with the snow-day driver (child seat)",
+     "notes": "Check road status on the Jeju Traffic Information Center first. Roads can close and cars may need chains. If closed, switch to outing B.",
+     "bookings": ["Snow-day charter"]
+    },
+    {
+     "type": "activity",
+     "start": "10:00",
+     "title": "1100 Altitude Wetland: flat 675 m boardwalk in the snow",
+     "notes": "Free, free parking (small lot). Sits at 1,100 m, 6-7 C colder than Jeju City. Best on a clear day 10:00-16:00 after a cold spell. Warm hat, gloves, windproof layer.",
+     "link": "https://www.jeju.com/blog/jeju-december-travel-spots"
+    },
+    {
+     "type": "activity",
+     "start": "10:45",
+     "title": "Sit-down sledding on the natural slope on the way",
+     "notes": "Sleds for rent at a stand beside the slope, about 5,000 KRW."
+    },
+    {
+     "type": "transport",
+     "start": "11:30",
+     "title": "Drive back to Jeju City"
+    },
+    {
+     "type": "dining",
+     "start": "12:30",
+     "title": "Lunch at Susuram (tonkatsu, donburi, karaage)",
+     "notes": "Near Jeju City Hall. Not verified: confirm hours and that it is open. Mini karaage on the menu.",
+     "link": "https://autoreserve.com/en/restaurants/9kCw2YTnwFv3w9BEmZE2"
+    },
+    {
+     "type": "rest",
+     "start": "13:45",
+     "title": "Nap and rest at hotel"
+    },
+    {
+     "type": "dining",
+     "start": "17:30",
+     "title": "Dinner at Mikadosushi, City Hall (conveyor-belt sushi)",
+     "notes": "11:30-21:30, closed 15:00-17:00. 70+ items; arrive early for the dinner rush."
+    }
+   ]
+  },
+  {
+   "date": "2026-12-29",
+   "title": "Outing B: Hello Kitty Island and Camellia Hill (indoor, rain-proof)",
+   "stops": [
+    {
+     "type": "dining",
+     "start": "08:00",
+     "title": "Breakfast at hotel or nearby cafe"
+    },
+    {
+     "type": "transport",
+     "start": "08:30",
+     "title": "Drive to Andeok (southwest) with child seat",
+     "notes": "Use the pre-booked driver or charter. Hello Kitty Island and Camellia Hill are close together."
+    },
+    {
+     "type": "activity",
+     "start": "09:15",
+     "title": "Hello Kitty Island",
+     "notes": "Indoor, three floors plus rooftop garden and arcade. 09:00-18:00, last entry 17:00 (one reseller lists 09:00-17:00 on weekdays, so confirm). Don't pair with Snoopy Garden: kids tire of similar character parks.",
+     "link": "https://www.trazy.com/experience/detail/hello-kitty-island-jeju-ticket",
+     "bookings": ["Hello Kitty Island"]
+    },
+    {
+     "type": "activity",
+     "start": "11:30",
+     "title": "Camellia Hill (camellias in bloom)",
+     "notes": "08:30-17:00 in Dec-Feb. Outdoor garden; short stroll.",
+     "link": "https://blog.waug.com/jeju-island-winter/"
+    },
+    {
+     "type": "dining",
+     "start": "12:45",
+     "title": "Lunch at Su Udon (Aewol/Hallim)",
+     "notes": "Not verified: confirm hours. Fodor's also lists an udon and tonkatsu place near Hyeopjae Beach.",
+     "link": "https://world.nol.com/en/content/articles/823ef762-aca7-49d6-b27a-2d0542ca64e2"
+    },
+    {
+     "type": "transport",
+     "start": "14:00",
+     "title": "Drive back to Jeju City"
+    },
+    {
+     "type": "rest",
+     "start": "14:45",
+     "title": "Nap and rest at hotel"
+    },
+    {
+     "type": "dining",
+     "start": "17:30",
+     "title": "Dinner at Cedars Sushi, Yeondong (sushi set course)",
+     "notes": "Not verified: confirm hours. Set course suits mixed appetites. Backup: Jeongjikhan Sushi (about US$13 per set; ask for half the rice).",
+     "link": "https://wanderlog.com/place/details/12505377/cedars-sushi-jeju-yeondong-branch"
+    },
+    {
+     "type": "rest",
+     "start": "19:00",
+     "title": "Back to hotel; pack"
+    }
+   ]
+  },
+  {
+   "date": "2026-12-30",
+   "title": "Slow morning, then the airport",
+   "stops": [
+    {
+     "type": "dining",
+     "start": "08:00",
+     "title": "Breakfast at hotel (try abalone porridge if offered)"
+    },
+    {
+     "type": "accommodation",
+     "start": "09:00",
+     "title": "Check out; leave bags with the hotel",
+     "bookings": ["Hotel Jeju City"]
+    },
+    {
+     "type": "activity",
+     "start": "09:45",
+     "title": "Eco Land train ride through Gotjawal forest (or Dongmun Market stroll for a lighter option)",
+     "notes": "Trains 08:40-16:30 in Dec-Mar; dress warmly. Dongmun Traditional Market in Jeju City is the usual place for local snacks and tangerines.",
+     "link": "https://blog.waug.com/jeju-island-winter/"
+    },
+    {
+     "type": "dining",
+     "start": "12:00",
+     "title": "Lunch at Udon Kaden (near Eco Land)",
+     "notes": "Not verified: confirm hours."
+    },
+    {
+     "type": "transport",
+     "start": "13:15",
+     "title": "Back to hotel; rest and collect bags"
+    },
+    {
+     "type": "transport",
+     "start": "16:30",
+     "title": "Private transfer to Jeju Airport with child seat",
+     "notes": "Keep this day light on purpose: snow and wind cancelled 163 of 461 Jeju flights on 8 Feb 2026.",
+     "bookings": ["Airport transfer"]
+    },
+    {
+     "type": "transport",
+     "start": "17:00",
+     "title": "Check in, security, immigration"
+    },
+    {
+     "type": "transport",
+     "start": "19:50",
+     "title": "Flight from Jeju to Singapore",
+     "bookings": ["Flight Jeju to SIN"]
+    }
+   ]
+  }
+ ],
+ "bookings": [
+  {"category": "flight", "title": "Flight SIN to Jeju (arrive 09:30, 27 Dec)", "booked": false, "notes": "Enter carrier, reference, seats and cost."},
+  {"category": "flight", "title": "Flight Jeju to SIN (depart 19:50, 30 Dec)", "booked": false, "notes": "Enter carrier, reference, seats and cost."},
+  {"category": "stay", "title": "Hotel Jeju City (3 nights, 27-30 Dec)", "booked": false, "notes": "Not chosen yet: Jeju City (Nohyeong/Shinjeju) for the airport and restaurants, or near Jungmun for a warmer, clearer south side."},
+  {"category": "other", "title": "Airport transfer with child seat (arrival and return)", "booked": false, "notes": "One listing shows a baby car seat add-on of 20,000 KRW; confirm when booking. Return pickup 16:30 on 30 Dec."},
+  {"category": "other", "title": "Snow-day charter with child seat (28 Dec)", "booked": false, "notes": "Private driver or 8-hour charter; add the child seat when booking. One tour listing says it provides none."},
+  {"category": "attraction", "title": "Hello Kitty Island tickets (29 Dec)", "booked": false, "notes": "Optional pre-booking via a reseller such as Trazy; confirm hours."}
+ ],
+ "checklist": [
+  {"group": "Bookings", "text": "Confirm flights: arrive Jeju 09:30 on 27 Dec, depart 19:50 on 30 Dec", "booking": "Flight SIN to Jeju"},
+  {"group": "Bookings", "text": "Choose and book the hotel (Jeju City vs near Jungmun)", "due": "2026-12-01", "booking": "Hotel Jeju City"},
+  {"group": "Bookings", "text": "Book airport transfers with a child seat (arrival and 16:30 return)", "due": "2026-12-01", "booking": "Airport transfer"},
+  {"group": "Bookings", "text": "Book the snow-day driver or charter with a child seat", "due": "2026-12-15", "booking": "Snow-day charter"},
+  {"group": "Bookings", "text": "Buy Hello Kitty Island tickets (optional)", "due": "2026-12-15", "booking": "Hello Kitty Island"},
+  {"group": "Documents", "text": "Confirm the K-ETA exemption for Singapore passports covers 27-30 Dec", "due": "2026-12-15"},
+  {"group": "Documents", "text": "Fill in the Korea e-Arrival Card (check how early it opens)", "due": "2026-12-20"},
+  {"group": "Check closer to the day", "text": "Check 9.81 Park for a Pokemon package (Naver blog blog.naver.com/981jeju, Instagram @9.81park, app); skip the park if not confirmed", "due": "2026-12-01"},
+  {"group": "Check closer to the day", "text": "Confirm hours and that these are open 27-30 Dec: Jeongjikhan Sushi, Susuram, Cedars Sushi, Udon Kaden, Su Udon", "due": "2026-12-20"},
+  {"group": "Check closer to the day", "text": "Check snow forecast and 1100 road status; pick day 2 or 3 for outing A (swap with B if needed)", "due": "2026-12-25"},
+  {"group": "Pack and prepare", "text": "Warm hat, gloves and windproof layer for the toddler"},
+  {"group": "Pack and prepare", "text": "Decide on a portable child seat or harness for short taxi rides"},
+  {"group": "Pack and prepare", "text": "Download Naver Map, Kakao Map and Kakao T (K.Ride is the foreigner version); get a Korea eSIM"},
+  {"group": "Pack and prepare", "text": "Buy and top up a T-money card at the airport CU or 7-Eleven on arrival"}
+ ]
+}

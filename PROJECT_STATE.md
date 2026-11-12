@@ -1,11 +1,11 @@
 # VacationGuru — Project State
 
-> **Next chat name: `VacationGuru ver 6`**
-> Claude: your FIRST reply in a new chat must start with "Rename this chat to: **VacationGuru ver 6**" (you can't rename chats yourself). In your first commit this session, bump the number here by 1.
+> **Next chat name: `VacationGuru ver 7`**
+> Claude: your FIRST reply in a new chat must start with "Rename this chat to: **VacationGuru ver 7**" (you can't rename chats yourself). In your first commit this session, bump the number here by 1.
 
 **State version:** 3 (ver 1 written 2026-10-20 in "Life Plan Roadmap ver 2"; moved into the repo 2026-10-22 by "Life Plan Roadmap ver 3")
 **Where this lives:** `PROJECT_STATE.md` in the repo. New chats `git pull` and read it; no uploads needed.
-**Project status:** ⏸ **ON HOLD after the Perth trip (2–8 Nov 2026).** No further holidays are planned for a while. Resume when the next trip is being planned.
+**Project status:** Perth trip (2–8 Nov 2026) done. **Jeju trip (27–30 Dec 2026) is being planned**: `imports/jeju-2026.json` ready to import (ver 6).
 
 ## ⚙ Session Rules (every chat that works on this app follows these)
 
@@ -91,6 +91,7 @@ A single-file trip planner (vanilla JS, Tailwind CDN, Playfair Display and Inter
 | Caroline access | ⏳ Needs Marvin: (1) Google Cloud Console → OAuth consent screen: add scope `.../auth/drive` and add Caroline's Gmail as a test user; (2) share `vacationguru-data.json` AND the `VacationGuru Menus` folder with her as Editor (Claude can do this via Drive once given her address); (3) she opens the app in Safari/Chrome and taps Connect Drive. Testing-mode consent expires after 7 days, so she may be asked to sign in again. |
 | Perth import | ✅ Marvin confirmed `imports/perth-2026.json` was imported into the app (2026-10-24). |
 | Ecosystem lessons | ✅ Already in the code: direct Drive `fetch()`, `res.ok` checks, 401 reconnect. ❌ Not yet: PWA files (`manifest.json`, `sw.js`, icons), iPhone redirect sign-in fallback, multi-device merge. |
+| Jeju import | ✅ `imports/jeju-2026.json` generated 2026-11-12 (ver 6) from the Claude Doc "Jeju Trip 27-30 Dec 2026": 4 days, 32 stops, 6 bookings (none booked, no costs or references yet), 14 checklist items with due dates. Checked against the import rules with a script, not run through the app. ⏳ Marvin needs to run Import. Outing A (snow) is on day 2 and B (Hello Kitty Island) on day 3; swap by forecast. Travellers set to Marvin and Cobae only: add the others. Hotel not chosen. |
 | Seed data | Perth & Margaret River, 2–8 Nov 2026, 7 days. Travellers: Marvin, Caroline, Cobae (toddler) and a guest adult. |
 
 **Conclusion:** VacationGuru was built but never deployed or used. The Perth trip was planned and paid outside the app. **Never modify the "Caroline & Marvin Life Planner" Google Sheet**; read it only if Marvin asks.
@@ -156,3 +157,4 @@ Don't deploy VacationGuru for Perth; the trip is fully settled outside the app. 
 - **ver 4 (2026-10-24, checkpoint 2 of 2):** Menu photos: upload from the stop modal to a `VacationGuru Menus` Drive folder, in-browser resize, gallery button on the itinerary row, remove to Drive trash, per-device offline cache. Skeleton copies drop menu links. The import "Update itinerary" warning now mentions menu photo links. Removed the RESUME HERE block (step done). Tested in Node with mocked Drive only, not in a browser. Next chat name bumped to ver 5.
 - **ver 4 (2026-10-24, later):** Food tab (view over Dining stops, with "+ Food place") and PDF support for menus. Marvin confirmed the Perth import is done. Open question for Marvin: what "sync across the tabs" means (see To-Do 5b). Tested in Node only.
 - **ver 4 (2026-10-24, later still):** Cross-tab consistency (Marvin's pick for "sync across tabs"): checklist↔booking link with two-way ticking, "not booked yet" warnings on stops, "Used in" on bookings, Progress card on Summary, import `booking` field, data v3 migration. Next chat name stays ver 5. Tested in Node only.
+- **ver 6 (2026-11-12):** Added `imports/jeju-2026.json` for the Jeju trip (27–30 Dec 2026, toddler, snow, Japanese food), same shape as Perth. Not run through the app. Next chat name bumped to ver 7.
