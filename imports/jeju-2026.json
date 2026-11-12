@@ -64,7 +64,8 @@
     {
      "type": "rest",
      "start": "15:15",
-     "title": "Nap and rest"
+     "title": "Nap (at least 2 hours, until about 17:15)",
+     "notes": "If the hotel grants early check-in, nap from about 13:30 instead. If not, a stroller or car nap earlier is the fallback."
     },
     {
      "type": "dining",
@@ -124,12 +125,12 @@
     },
     {
      "type": "rest",
-     "start": "13:45",
-     "title": "Nap and rest at hotel"
+     "start": "14:00",
+     "title": "Nap at hotel (at least 2 hours, until about 16:00)"
     },
     {
      "type": "dining",
-     "start": "16:00",
+     "start": "16:15",
      "title": "Bakery cafe break: A La Papa, Yeondong (black milk tea spread, brioche)",
      "notes": "Listed 5 minutes by car from Halla Arboretum. Hours not verified. Backup: Cafe Del Moondo (opens 08:00, soft-mat seating upstairs) or Cafe Road near the airport (tent playroom, baby chair)."
     },
@@ -187,11 +188,18 @@
     {
      "type": "rest",
      "start": "14:15",
-     "title": "Nap and rest"
+     "title": "Nap at hotel (at least 2 hours, until about 16:30)"
+    },
+    {
+     "type": "activity",
+     "start": "16:45",
+     "title": "Yongduam (Dragon Head Rock) sea walk, about 30 minutes",
+     "notes": "Free, open at all times, about a 10-minute taxi from the airport area. Iho Tewoo Beach (horse lighthouses) is nearby for a short stroll. Skip if windy or he is grumpy after waking.",
+     "link": "https://guide-in-my-hand.expo.app/en/poi/yongduam.html"
     },
     {
      "type": "dining",
-     "start": "17:30",
+     "start": "17:45",
      "title": "Dinner at Cedars Sushi, Yeondong (sushi set course with udon, steamed egg, tempura)",
      "notes": "Cobae eats the cooked parts (udon, egg, tempura). Not verified: confirm hours. Backup: Jaemo Lee Pizza Jeju (Ara-dong, family-friendly, cheese-crust pizza).",
      "link": "https://wanderlog.com/place/details/12505377/cedars-sushi-jeju-yeondong-branch"
@@ -239,15 +247,21 @@
      "link": "https://www.catchtable.net/discovery/koreas-10-best-japanese-restaurants-in-jeju-city.html"
     },
     {
-     "type": "dining",
-     "start": "13:00",
-     "title": "Last chill: coffee and pastry at Flat 4 Coffee Roasters or the hotel lobby Starbucks"
+     "type": "shopping",
+     "start": "12:30",
+     "title": "Souvenirs and snacks at E-Mart Sinjeju (Hallabong and tangerine sweets)",
+     "notes": "Dongmun Market also sells tangerines and sweets. Keep this day light: snow and wind cancelled 163 of 461 Jeju flights on 8 Feb 2026."
     },
     {
-     "type": "shopping",
-     "start": "14:00",
-     "title": "Souvenirs and snacks: Hallabong and tangerine sweets at E-Mart Sinjeju",
-     "notes": "Dongmun Market also sells tangerines and sweets. Keep this day light: snow and wind cancelled 163 of 461 Jeju flights on 8 Feb 2026."
+     "type": "rest",
+     "start": "13:30",
+     "title": "Nap (at least 2 hours, until about 15:45): ask the hotel for late check-out or a day room",
+     "notes": "Check-out is by 11:00, so ask early for late check-out (to about 16:00, may cost extra) or a day-use room. Fallback: leave bags at the front desk and nap in a pre-booked car with child seat parked near Yongduam or the airport, or in a stroller at a floor-seating cafe such as Cafe Road near the airport (tent playroom, baby chair). The airport international terminal has an airside nursing room on the 3rd floor, but that is a last resort."
+    },
+    {
+     "type": "dining",
+     "start": "15:45",
+     "title": "Wake up; coffee and a snack at Flat 4 Coffee Roasters or the hotel lobby Starbucks"
     },
     {
      "type": "transport",
@@ -285,6 +299,7 @@
   {"group": "Bookings", "text": "Decide: 1-day rental or private charter for 28 Dec (taxis cover every other day)", "due": "2026-11-30"},
   {"group": "Bookings", "text": "Book the Day 2 car or charter with a child seat; get the seat confirmed in writing", "due": "2026-12-05", "booking": "Day 2 car"},
   {"group": "Bookings", "text": "Book airport transfers with a child seat (or decide to use regular taxis)", "due": "2026-12-05", "booking": "Airport transfers"},
+  {"group": "Bookings", "text": "Nap plan for 30 Dec: ask the hotel for late check-out (to about 16:00) or a day room; if refused, book a car with child seat for a 2-hour car nap before the airport", "due": "2026-12-05"},
   {"group": "Bookings", "text": "Message the hotel: early check-in on 27 Dec (arriving about 11:00), cot or extra bedding, luggage storage on 30 Dec", "due": "2026-12-15"},
   {"group": "Documents", "text": "If renting: apply for an International Driving Permit at AA Singapore (about S$20; bring the physical IDP, Singapore licence and passport; online can take up to 10 working days, walk-in is same day)", "due": "2026-12-04"},
   {"group": "Documents", "text": "Confirm the Singapore passport K-ETA exemption covers 27-30 Dec", "due": "2026-12-15"},
