@@ -2,13 +2,24 @@
  "format": "vacationguru-trip",
  "version": 1,
  "id": "jeju-2026",
- "name": "Jeju (toddler, snow, cafes & food)",
+ "name": "Jeju WITH car (toddler, snow, cafes & food)",
  "destination": "Jeju Island, South Korea",
  "start": "2026-12-27",
  "end": "2026-12-30",
- "tags": ["toddler", "kid-friendly", "cafes", "japanese-food", "winter", "chill"],
+ "tags": [
+  "toddler",
+  "kid-friendly",
+  "cafes",
+  "japanese-food",
+  "winter",
+  "chill"
+ ],
  "budgetTier": "$$",
- "travellers": ["Marvin", "Caroline", "Cobae (toddler, 2.5)"],
+ "travellers": [
+  "Marvin",
+  "Caroline",
+  "Cobae (toddler, 2.5)"
+ ],
  "notes": "Flights: SIN 02:30 Sun 27 Dec -> CJU 09:30; CJU 19:45 Wed 30 Dec -> SIN 01:15 Thu 31 Dec. Hotel: Best Western Jeju Hotel, 27 Doryeong-ro, Nohyeong-dong (check-in from 15:00, check-out by 11:00, free on-site parking, luggage storage). Cobae cannot eat raw food: sashimi and sushi are for the adults, so every raw-fish meal needs a cooked option for him (noted on each stop).\n\nGETTING AROUND (decision): do not rent for the whole stay. Day 1 follows an overnight flight, and Day 3-4 places are all within a few km of the hotel, so use taxis (Kakao T) there. Regular taxis rarely carry child seats: use a rental or charter that confirms one in writing. The only long trip is Day 2 (1100 Altitude Wetland, snow): either a 1-day rental (needs an International Driving Permit from AA Singapore plus Singapore licence and passport) or a private charter with a child seat. Rough total: taxis plus Day 2 charter about 270,000-340,000 KRW; renting 3-4 days about S$340-540 before fuel and extras. Rentals beat taxis only if you add 2 or more long island outings.\n\nOPTIONAL OUTINGS (need a car or charter): Hello Kitty Island + Camellia Hill (Andeok, indoor backup if the 1100 road is closed), Forest Safari (dinosaur walkway, Jocheon), Eco Land (train, Jocheon). Jeju Dinosaur Land (Aewol) is listed as no longer operating on one site and still sold on another: verify before planning. Snow is a bonus, not the plan; the 1100 and 5.16 roads can close.",
  "days": [
   {
@@ -20,21 +31,27 @@
      "start": "09:30",
      "title": "Land at Jeju Airport; immigration and bags",
      "notes": "Fill in the e-Arrival Card beforehand. Buy a T-money card at the airport CU or 7-Eleven. Do not drive today: you will be tired after the 02:30 departure.",
-     "bookings": ["Flight SIN to CJU"]
+     "bookings": [
+      "Flight SIN to CJU"
+     ]
     },
     {
      "type": "transport",
      "start": "10:30",
      "title": "Transfer to hotel (about 3 km): pre-booked car with child seat, or a Kakao T taxi",
      "notes": "Regular taxis rarely have a child seat. A taxi from the airport to central Jeju City is roughly 9,000 KRW.",
-     "bookings": ["Airport transfers"]
+     "bookings": [
+      "Airport transfers"
+     ]
     },
     {
      "type": "accommodation",
      "start": "11:00",
      "title": "Best Western Jeju Hotel: drop bags and ask for early check-in",
      "notes": "Check-in officially from 15:00. 24-hour front desk and luggage storage. Cheju Halla General Hospital is about a 4-6 minute walk.",
-     "bookings": ["Best Western Jeju Hotel"]
+     "bookings": [
+      "Best Western Jeju Hotel"
+     ]
     },
     {
      "type": "dining",
@@ -59,7 +76,9 @@
      "type": "accommodation",
      "start": "15:00",
      "title": "Check in; nap",
-     "bookings": ["Best Western Jeju Hotel"]
+     "bookings": [
+      "Best Western Jeju Hotel"
+     ]
     },
     {
      "type": "rest",
@@ -96,7 +115,9 @@
      "start": "09:00",
      "title": "Pick up car or charter with child seat; drive up the 1100 road",
      "notes": "Check road status and the forecast on 26 Dec (Jeju Traffic Information Center). Roads can close and cars may need chains. If closed or no snow, switch to Hello Kitty Island and Camellia Hill (Andeok, indoor), or do Day 3 first. A rental needs an IDP; a Lotte charter lists a child seat at 8,000 KRW per use.",
-     "bookings": ["Day 2 car"]
+     "bookings": [
+      "Day 2 car"
+     ]
     },
     {
      "type": "activity",
@@ -171,7 +192,9 @@
      "title": "Sumokwon Theme Park (Yeon-dong): Ice Museum, trick art, 5D theatre",
      "notes": "The Ice Museum is kept near -5 C all year, so it is a second chance at ice and an ice slide if the 1100 road had no snow. Bring warm clothes. Hours conflict between sources (09:00-19:00 with last entry 18:00, or longer): confirm. No stroller rental. Some rides may have age limits: check for Cobae.",
      "link": "https://www.trazy.com/experience/detail/jeju-sumokwon-theme-park-entrance-ticket",
-     "bookings": ["Sumokwon Theme Park"]
+     "bookings": [
+      "Sumokwon Theme Park"
+     ]
     },
     {
      "type": "dining",
@@ -231,13 +254,17 @@
      "title": "Nohyeong Supermarket: immersive indoor media-art exhibition",
      "notes": "It is an art exhibition, not a grocery store. Open 09:00-19:00, last entry 18:00, no re-entry, parking available. Children under 36 months enter free (bring proof of age); strollers have restrictions. A cafe (Nohyeong Dabang) and gift shop are inside.",
      "link": "https://www.trvlogue.com/en/nohyeong-supermarket-jeju-indoor",
-     "bookings": ["Nohyeong Supermarket"]
+     "bookings": [
+      "Nohyeong Supermarket"
+     ]
     },
     {
      "type": "accommodation",
      "start": "10:45",
      "title": "Back to hotel; check out by 11:00; leave bags at the front desk",
-     "bookings": ["Best Western Jeju Hotel"]
+     "bookings": [
+      "Best Western Jeju Hotel"
+     ]
     },
     {
      "type": "dining",
@@ -268,7 +295,9 @@
      "start": "16:30",
      "title": "Collect bags; transfer to Jeju Airport (pre-booked with child seat, or taxi)",
      "notes": "Roughly 9,000 KRW by taxi, 10-20 minutes.",
-     "bookings": ["Airport transfers"]
+     "bookings": [
+      "Airport transfers"
+     ]
     },
     {
      "type": "transport",
@@ -279,40 +308,159 @@
      "type": "transport",
      "start": "19:45",
      "title": "Flight from Jeju to Singapore (arrives 01:15 on 31 Dec)",
-     "bookings": ["Flight CJU to SIN"]
+     "bookings": [
+      "Flight CJU to SIN"
+     ]
     }
    ]
   }
  ],
  "bookings": [
-  {"category": "flight", "title": "Flight SIN to CJU (departs 02:30, arrives 09:30, 27 Dec)", "pax": 3, "booked": true, "notes": "Enter carrier, reference, seats and cost."},
-  {"category": "flight", "title": "Flight CJU to SIN (departs 19:45, 30 Dec; arrives 01:15, 31 Dec)", "pax": 3, "booked": true, "notes": "Enter carrier, reference, seats and cost."},
-  {"category": "stay", "title": "Best Western Jeju Hotel (27-30 Dec, 3 nights)", "pax": 3, "booked": true, "notes": "27 Doryeong-ro, Nohyeong-dong. Check-in from 15:00, check-out by 11:00. Free on-site parking. Enter reference and cost."},
-  {"category": "other", "title": "Travel insurance, Singlife (27-31 Dec)", "carrier": "Singlife", "pax": 3, "booked": true, "notes": "Policy number is not stored in this file because the repo is public: type it into the Reference field in the app."},
-  {"category": "car", "title": "Day 2 car or charter with child seat (28 Dec)", "booked": false, "notes": "Choose: 1-day rental (Lotte Rent-a-Car has an airport desk and English contracts and navigation; Jeju OK Rent-a-Car is another option) or a private charter. Needs an IDP for a rental. Confirm the child seat in writing with Cobae's age, height and weight."},
-  {"category": "other", "title": "Airport transfers with child seat (27 Dec arrival, 30 Dec departure)", "booked": false, "notes": "Optional. Without it, use a regular taxi and hold Cobae."},
-  {"category": "attraction", "title": "Sumokwon Theme Park tickets (29 Dec)", "booked": false, "notes": "Optional pre-booking on a reseller such as Trazy; check what Cobae can do and the price for his age."},
-  {"category": "attraction", "title": "Nohyeong Supermarket tickets (30 Dec)", "booked": false, "notes": "Children under 36 months are free (proof of age); adult ticket about US$11 on one listing. Same-day entry is possible."}
+  {
+   "category": "flight",
+   "title": "Flight SIN to CJU (departs 02:30, arrives 09:30, 27 Dec)",
+   "pax": 3,
+   "booked": true,
+   "notes": "Enter carrier, reference, seats and cost."
+  },
+  {
+   "category": "flight",
+   "title": "Flight CJU to SIN (departs 19:45, 30 Dec; arrives 01:15, 31 Dec)",
+   "pax": 3,
+   "booked": true,
+   "notes": "Enter carrier, reference, seats and cost."
+  },
+  {
+   "category": "stay",
+   "title": "Best Western Jeju Hotel (27-30 Dec, 3 nights)",
+   "pax": 3,
+   "booked": true,
+   "notes": "27 Doryeong-ro, Nohyeong-dong. Check-in from 15:00, check-out by 11:00. Free on-site parking. Enter reference and cost."
+  },
+  {
+   "category": "other",
+   "title": "Travel insurance, Singlife (27-31 Dec)",
+   "carrier": "Singlife",
+   "pax": 3,
+   "booked": true,
+   "notes": "Policy number is not stored in this file because the repo is public: type it into the Reference field in the app."
+  },
+  {
+   "category": "car",
+   "title": "Day 2 car or charter with child seat (28 Dec)",
+   "booked": false,
+   "notes": "Choose: 1-day rental (Lotte Rent-a-Car has an airport desk and English contracts and navigation; Jeju OK Rent-a-Car is another option) or a private charter. Needs an IDP for a rental. Confirm the child seat in writing with Cobae's age, height and weight."
+  },
+  {
+   "category": "other",
+   "title": "Airport transfers with child seat (27 Dec arrival, 30 Dec departure)",
+   "booked": false,
+   "notes": "Optional. Without it, use a regular taxi and hold Cobae."
+  },
+  {
+   "category": "attraction",
+   "title": "Sumokwon Theme Park tickets (29 Dec)",
+   "booked": false,
+   "notes": "Optional pre-booking on a reseller such as Trazy; check what Cobae can do and the price for his age."
+  },
+  {
+   "category": "attraction",
+   "title": "Nohyeong Supermarket tickets (30 Dec)",
+   "booked": false,
+   "notes": "Children under 36 months are free (proof of age); adult ticket about US$11 on one listing. Same-day entry is possible."
+  }
  ],
  "checklist": [
-  {"group": "Bookings", "text": "Enter flight carrier, references, seats and costs for both flights"},
-  {"group": "Bookings", "text": "Decide: 1-day rental or private charter for 28 Dec (taxis cover every other day)", "due": "2026-11-30"},
-  {"group": "Bookings", "text": "Book the Day 2 car or charter with a child seat; get the seat confirmed in writing", "due": "2026-12-05", "booking": "Day 2 car"},
-  {"group": "Bookings", "text": "Book airport transfers with a child seat (or decide to use regular taxis)", "due": "2026-12-05", "booking": "Airport transfers"},
-  {"group": "Bookings", "text": "Nap plan for 30 Dec: ask the hotel for late check-out (to about 16:00) or a day room; if refused, book a car with child seat for a 2-hour car nap before the airport", "due": "2026-12-05"},
-  {"group": "Bookings", "text": "Message the hotel: early check-in on 27 Dec (arriving about 11:00), cot or extra bedding, luggage storage on 30 Dec", "due": "2026-12-15"},
-  {"group": "Documents", "text": "If renting: apply for an International Driving Permit at AA Singapore (about S$20; bring the physical IDP, Singapore licence and passport; online can take up to 10 working days, walk-in is same day)", "due": "2026-12-04"},
-  {"group": "Documents", "text": "Confirm the Singapore passport K-ETA exemption covers 27-30 Dec", "due": "2026-12-15"},
-  {"group": "Documents", "text": "Fill in the Korea e-Arrival Card (check how early it opens)", "due": "2026-12-20"},
-  {"group": "Documents", "text": "Save the Singlife policy number and claims hotline on both phones", "due": "2026-12-20"},
-  {"group": "Check closer to the day", "text": "Confirm hours and that these are open 27-30 Dec: Papero, Susuram, Cedars Sushi, Casadidonmun, A La Papa, Flat 4 Coffee Roasters, E-Mart Sinjeju", "due": "2026-12-20"},
-  {"group": "Check closer to the day", "text": "Confirm Sumokwon Theme Park hours and Nohyeong Supermarket hours (sources conflict or are old)", "due": "2026-12-20"},
-  {"group": "Check closer to the day", "text": "Check snow forecast and 1100 road status; keep Day 2 or swap with Day 3 / Hello Kitty Island", "due": "2026-12-26"},
-  {"group": "Check closer to the day", "text": "Optional: check whether Jeju Dinosaur Land is open (one listing says no longer operating) and whether 9.81 Park has a Pokemon package", "due": "2026-12-01"},
-  {"group": "Pack and prepare", "text": "Warm hat, gloves and windproof layer for Cobae; adults too (Sumokwon Ice Museum is about -5 C)"},
-  {"group": "Pack and prepare", "text": "Optional: portable child seat or harness for short taxi rides"},
-  {"group": "Pack and prepare", "text": "Download Naver Map, Kakao Map and Kakao T; get a Korea eSIM"},
-  {"group": "Pack and prepare", "text": "Buy and top up a T-money card at the airport CU or 7-Eleven on arrival"},
-  {"group": "Pack and prepare", "text": "Cooked snacks for Cobae for the sashimi and sushi stops"}
+  {
+   "group": "Bookings",
+   "text": "Enter flight carrier, references, seats and costs for both flights"
+  },
+  {
+   "group": "Bookings",
+   "text": "Decide: 1-day rental or private charter for 28 Dec (taxis cover every other day)",
+   "due": "2026-11-30"
+  },
+  {
+   "group": "Bookings",
+   "text": "Book the Day 2 car or charter with a child seat; get the seat confirmed in writing",
+   "due": "2026-12-05",
+   "booking": "Day 2 car"
+  },
+  {
+   "group": "Bookings",
+   "text": "Book airport transfers with a child seat (or decide to use regular taxis)",
+   "due": "2026-12-05",
+   "booking": "Airport transfers"
+  },
+  {
+   "group": "Bookings",
+   "text": "Nap plan for 30 Dec: ask the hotel for late check-out (to about 16:00) or a day room; if refused, book a car with child seat for a 2-hour car nap before the airport",
+   "due": "2026-12-05"
+  },
+  {
+   "group": "Bookings",
+   "text": "Message the hotel: early check-in on 27 Dec (arriving about 11:00), cot or extra bedding, luggage storage on 30 Dec",
+   "due": "2026-12-15"
+  },
+  {
+   "group": "Documents",
+   "text": "If renting: apply for an International Driving Permit at AA Singapore (about S$20; bring the physical IDP, Singapore licence and passport; online can take up to 10 working days, walk-in is same day)",
+   "due": "2026-12-04"
+  },
+  {
+   "group": "Documents",
+   "text": "Confirm the Singapore passport K-ETA exemption covers 27-30 Dec",
+   "due": "2026-12-15"
+  },
+  {
+   "group": "Documents",
+   "text": "Fill in the Korea e-Arrival Card (check how early it opens)",
+   "due": "2026-12-20"
+  },
+  {
+   "group": "Documents",
+   "text": "Save the Singlife policy number and claims hotline on both phones",
+   "due": "2026-12-20"
+  },
+  {
+   "group": "Check closer to the day",
+   "text": "Confirm hours and that these are open 27-30 Dec: Papero, Susuram, Cedars Sushi, Casadidonmun, A La Papa, Flat 4 Coffee Roasters, E-Mart Sinjeju",
+   "due": "2026-12-20"
+  },
+  {
+   "group": "Check closer to the day",
+   "text": "Confirm Sumokwon Theme Park hours and Nohyeong Supermarket hours (sources conflict or are old)",
+   "due": "2026-12-20"
+  },
+  {
+   "group": "Check closer to the day",
+   "text": "Check snow forecast and 1100 road status; keep Day 2 or swap with Day 3 / Hello Kitty Island",
+   "due": "2026-12-26"
+  },
+  {
+   "group": "Check closer to the day",
+   "text": "Optional: check whether Jeju Dinosaur Land is open (one listing says no longer operating) and whether 9.81 Park has a Pokemon package",
+   "due": "2026-12-01"
+  },
+  {
+   "group": "Pack and prepare",
+   "text": "Warm hat, gloves and windproof layer for Cobae; adults too (Sumokwon Ice Museum is about -5 C)"
+  },
+  {
+   "group": "Pack and prepare",
+   "text": "Optional: portable child seat or harness for short taxi rides"
+  },
+  {
+   "group": "Pack and prepare",
+   "text": "Download Naver Map, Kakao Map and Kakao T; get a Korea eSIM"
+  },
+  {
+   "group": "Pack and prepare",
+   "text": "Buy and top up a T-money card at the airport CU or 7-Eleven on arrival"
+  },
+  {
+   "group": "Pack and prepare",
+   "text": "Cooked snacks for Cobae for the sashimi and sushi stops"
+  }
  ]
 }
